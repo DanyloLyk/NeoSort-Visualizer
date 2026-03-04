@@ -99,7 +99,8 @@ void BubbleSort(AppState& state) {
             state.highlight_2 = state.bubble_j + 1;
 
             // Саме порівняння і перестановка
-            if (state.arr[state.bubble_j] > state.arr[state.bubble_j + 1]) {
+            bool condition = state.sort_descending ? (state.arr[state.bubble_j] < state.arr[state.bubble_j + 1]) : (state.arr[state.bubble_j] > state.arr[state.bubble_j + 1]);
+            if (condition) {
                 state.is_swapping = true;
 
                 if (state.detailed_logs) {
@@ -136,7 +137,8 @@ void SelectionSort(AppState& state) {
             state.is_swapping = false; // Поки що тільки шукаємо, не стрибаємо
 
             // Якщо знайшли число, яке ще менше за наш поточний мінімум — запам'ятовуємо його індекс!
-            if (state.arr[state.sel_j] < state.arr[state.sel_min_idx]) {
+            bool condition = state.sort_descending ? (state.arr[state.sel_j] > state.arr[state.sel_min_idx]) : (state.arr[state.sel_j] < state.arr[state.sel_min_idx]);
+            if (condition) {
                 state.sel_min_idx = state.sel_j;
             }
             state.sel_j++; 
@@ -178,7 +180,11 @@ void InsertionSort(AppState& state) {
     if (state.ins_i < n) {
         
         // Внутрішній цикл: тягнемо елемент ВЛІВО, поки він менший за свого лівого сусіда
-        if (state.ins_j > 0 && state.arr[state.ins_j - 1] > state.arr[state.ins_j]) {
+        bool condition = false;
+        if (state.ins_j > 0) { // СПОЧАТКУ перевіряємо, чи ми не вийшли за межі
+            condition = state.sort_descending ? (state.arr[state.ins_j - 1] < state.arr[state.ins_j]) : (state.arr[state.ins_j - 1] > state.arr[state.ins_j]);
+        }
+        if (state.ins_j > 0 && condition) {
             
             // Підсвічуємо поточну пару (вони сусідні)
             state.highlight_1 = state.ins_j - 1;
@@ -237,13 +243,15 @@ void MergeSort(AppState& state) {
             }
 
             // САМ ПРОЦЕС ЗЛИТТЯ (покроково)
-            if (state.merge_i <= mid && state.merge_j <= right) {
+            if (state.merge_i <= mid && state.merge_j <= right) { 
                 // Підсвічуємо елементи, які зараз порівнюємо
                 state.highlight_1 = state.merge_i;
                 state.highlight_2 = state.merge_j;
                 state.is_swapping = false; // У Merge Sort немає класичних стрибків
+                
+                bool condition = state.sort_descending ? (state.merge_buffer[state.merge_i] >= state.merge_buffer[state.merge_j]) : (state.merge_buffer[state.merge_i] <= state.merge_buffer[state.merge_j]);
 
-                if (state.merge_buffer[state.merge_i] <= state.merge_buffer[state.merge_j]) {
+                if (condition) {
                     state.arr[state.merge_k] = state.merge_buffer[state.merge_i];
                     state.merge_i++;
                 } else {
@@ -300,6 +308,256 @@ void MergeSort(AppState& state) {
     }
 }
 
+void QuickSort(AppState& state) {
+    if (!state.is_sorting || state.arr.size() < 2) return;
+
+    int n = (int)state.arr.size();
+
+    // 1. Ініціалізація: закидаємо весь масив (від 0 до n-1) у стек як перше "завдання"
+    if (!state.qs_initialized) {
+        state.qs_stack.push_back({0, n - 1});
+        state.qs_initialized = true;
+        state.qs_is_partitioning = false;
+    }
+
+    // 2. Якщо ми зараз в процесі розділення (partition)
+    if (state.qs_is_partitioning) {
+        
+        // Поки j не дійшов до кінця нашого шматка
+        if (state.qs_j <= state.qs_high - 1) {
+            state.highlight_1 = state.qs_j;
+            state.highlight_2 = state.qs_high; // Опорний елемент завжди підсвічений!
+            state.is_swapping = false;
+
+            // Якщо поточний елемент менший за опорний
+            bool condition = state.sort_descending ? (state.arr[state.qs_j] > state.qs_pivot) : (state.arr[state.qs_j] < state.qs_pivot);
+            if (condition) {
+                state.qs_i++;
+                state.is_swapping = true; // Робимо стрибок
+                
+                if (state.detailed_logs) {
+                    state.log_history.push_back("[Quick] Міняємо " + std::to_string(state.arr[state.qs_i]) + " та " + std::to_string(state.arr[state.qs_j]));
+                }
+                std::swap(state.arr[state.qs_i], state.arr[state.qs_j]);
+                
+                // Перевизначаємо підсвітку для красивого стрибка
+                state.highlight_1 = state.qs_i;
+                state.highlight_2 = state.qs_j;
+            }
+            state.qs_j++;
+        } 
+        else {
+            // Дійшли до кінця: ставимо опорний елемент на його ЗАКОННЕ місце
+            state.qs_i++;
+            std::swap(state.arr[state.qs_i], state.arr[state.qs_high]);
+            
+            state.is_swapping = true; // Стрибок опорного елемента
+            state.highlight_1 = state.qs_i;
+            state.highlight_2 = state.qs_high;
+            
+            if (state.detailed_logs) {
+                state.log_history.push_back("[Quick] Опорний елемент " + std::to_string(state.arr[state.qs_i]) + " став на своє місце!");
+            }
+
+            // Тепер наш масив розділений!
+            // Додаємо ліву частину в стек завдань (якщо там більше 1 елемента)
+            if (state.qs_i - 1 > state.qs_low) {
+                state.qs_stack.push_back({state.qs_low, state.qs_i - 1});
+            }
+            // Додаємо праву частину в стек
+            if (state.qs_i + 1 < state.qs_high) {
+                state.qs_stack.push_back({state.qs_i + 1, state.qs_high});
+            }
+
+            state.qs_is_partitioning = false; // Завдання виконано
+        }
+    } 
+    // 3. Якщо ми не ділимо, значить треба взяти нове завдання зі стеку
+    else {
+        if (!state.qs_stack.empty()) {
+            // Беремо останнє завдання
+            auto bounds = state.qs_stack.back();
+            state.qs_stack.pop_back();
+
+            // Розпаковуємо межі
+            state.qs_low = bounds.first;
+            state.qs_high = bounds.second;
+            
+            // Встановлюємо опорний елемент (останній у шматку)
+            state.qs_pivot = state.arr[state.qs_high];
+            
+            // Налаштовуємо індекси для нового проходу
+            state.qs_i = state.qs_low - 1;
+            state.qs_j = state.qs_low;
+
+            state.qs_is_partitioning = true; // Запускаємо процес
+            
+            if (state.detailed_logs) {
+                state.log_history.push_back("[Quick] Беремо шматок [" + std::to_string(state.qs_low) + "..." + std::to_string(state.qs_high) + "]. Опорний: " + std::to_string(state.qs_pivot));
+            }
+        } 
+        else {
+            EndSort(state);
+        }
+    }
+}
+
+void ShellSort(AppState& state) {
+    if (!state.is_sorting || state.arr.size() < 2) return;
+
+    int n = (int)state.arr.size();
+
+    // 1. Ініціалізація: починаємо з кроку (gap), який дорівнює половині масиву
+    if (state.shell_gap == 0 && state.shell_i == 0) {
+        state.shell_gap = n / 2;
+        state.shell_i = state.shell_gap;
+        state.shell_j = state.shell_i;
+    }
+
+    // 2. Поки крок більше нуля
+    if (state.shell_gap > 0) {
+        
+        // Йдемо по масиву
+        if (state.shell_i < n) {
+            
+            // Порівнюємо елементи на відстані 'gap'
+            bool condition = false;
+            if (state.shell_j >= state.shell_gap) {
+                condition = state.sort_descending ? (state.arr[state.shell_j - state.shell_gap] < state.arr[state.shell_j]) : (state.arr[state.shell_j - state.shell_gap] > state.arr[state.shell_j]);
+            }
+            if (state.shell_j >= state.shell_gap && condition) {
+                
+                state.highlight_1 = state.shell_j - state.shell_gap;
+                state.highlight_2 = state.shell_j;
+                state.is_swapping = true; // Робимо довгий красивий стрибок!
+                
+                if (state.detailed_logs) {
+                    state.log_history.push_back("[Shell] Міняємо на відстані " + std::to_string(state.shell_gap) + 
+                        ": " + std::to_string(state.arr[state.shell_j - state.shell_gap]) + 
+                        " та " + std::to_string(state.arr[state.shell_j]));
+                }
+
+                // Міняємо місцями
+                std::swap(state.arr[state.shell_j - state.shell_gap], state.arr[state.shell_j]);
+                
+                // Відступаємо назад на крок gap, щоб перевірити попередні
+                state.shell_j -= state.shell_gap;
+            } 
+            else {
+                // Більше обмінів для цього елемента не треба, беремо наступний
+                state.is_swapping = false;
+                state.shell_i++;
+                state.shell_j = state.shell_i;
+                
+                // Просто підсвічуємо поточний елемент
+                if (state.shell_i < n) {
+                    state.highlight_1 = state.shell_i;
+                    state.highlight_2 = state.shell_i;
+                }
+            }
+        } 
+        else {
+            // Пройшли весь масив з поточним кроком. Зменшуємо крок вдвічі!
+            state.shell_gap /= 2;
+            
+            if (state.shell_gap > 0) {
+                state.shell_i = state.shell_gap;
+                state.shell_j = state.shell_i;
+                if (state.detailed_logs) {
+                    state.log_history.push_back("[Shell] Зменшуємо відстань кроку до: " + std::to_string(state.shell_gap));
+                }
+            }
+        }
+    } 
+    else {
+        EndSort(state);
+    }
+}
+
+void CocktailShakerSort(AppState& state) {
+    if (!state.is_sorting || state.arr.size() < 2) return;
+
+    int n = (int)state.arr.size();
+
+    // 1. Ініціалізація
+    if (!state.shaker_initialized) {
+        state.shaker_left = 0;
+        state.shaker_right = n - 1;
+        state.shaker_i = 0;
+        state.shaker_dir = 1; // Починаємо рух вправо
+        state.shaker_swapped = false;
+        state.shaker_initialized = true;
+    }
+
+    // 2. Якщо ліва і права межа зустрілися — масив відсортовано!
+    if (state.shaker_left >= state.shaker_right) {
+        EndSort(state);
+        return;
+    }
+
+    // 3. РУХ ВПРАВО (як класична Бульбашка)
+    if (state.shaker_dir == 1) {
+        if (state.shaker_i < state.shaker_right) {
+            state.highlight_1 = state.shaker_i;
+            state.highlight_2 = state.shaker_i + 1;
+            state.is_swapping = false;
+
+            bool condition = state.sort_descending ? (state.arr[state.shaker_i] < state.arr[state.shaker_i + 1]) : (state.arr[state.shaker_i] > state.arr[state.shaker_i + 1]);
+            if (condition) {
+                state.is_swapping = true;
+                std::swap(state.arr[state.shaker_i], state.arr[state.shaker_i + 1]);
+                state.shaker_swapped = true;
+
+                if (state.detailed_logs) {
+                    state.log_history.push_back("[Shaker] Вправо: міняємо " + std::to_string(state.arr[state.shaker_i]) + " та " + std::to_string(state.arr[state.shaker_i+1]));
+                }
+            }
+            state.shaker_i++;
+        } else {
+            // Дійшли до правого краю!
+            if (!state.shaker_swapped) {
+                EndSort(state); // Якщо по дорозі нікого не поміняли, все готово
+                return;
+            }
+            // Готуємось іти назад
+            state.shaker_right--; // Найбільший елемент вже на місці, звужуємо межу
+            state.shaker_dir = -1; // Міняємо напрямок на "Вліво"
+            state.shaker_i = state.shaker_right; // Ставимо індекс на новий край
+            state.shaker_swapped = false; // Скидаємо прапорець для нового проходу
+        }
+    }
+    // 4. РУХ ВЛІВО (тягнемо найменший елемент на початок)
+    else if (state.shaker_dir == -1) {
+        if (state.shaker_i > state.shaker_left) {
+            state.highlight_1 = state.shaker_i - 1;
+            state.highlight_2 = state.shaker_i;
+            state.is_swapping = false;
+
+            bool condition = state.sort_descending ? (state.arr[state.shaker_i - 1] < state.arr[state.shaker_i]) : (state.arr[state.shaker_i - 1] > state.arr[state.shaker_i]);
+            if (condition) {
+                state.is_swapping = true;
+                std::swap(state.arr[state.shaker_i - 1], state.arr[state.shaker_i]);
+                state.shaker_swapped = true;
+
+                if (state.detailed_logs) {
+                    state.log_history.push_back("[Shaker] Вліво: міняємо " + std::to_string(state.arr[state.shaker_i-1]) + " та " + std::to_string(state.arr[state.shaker_i]));
+                }
+            }
+            state.shaker_i--;
+        } else {
+            // Дійшли до лівого краю!
+            if (!state.shaker_swapped) {
+                EndSort(state); // Якщо нічого не змінили - готово
+                return;
+            }
+            // Готуємось іти вперед
+            state.shaker_left++; // Найменший елемент на місці, звужуємо межу
+            state.shaker_dir = 1; // Міняємо напрямок на "Вправо"
+            state.shaker_i = state.shaker_left;
+            state.shaker_swapped = false;
+        }
+    }
+}
 
 void EndSort(AppState& state) {
     // СОРТУВАННЯ ЗАВЕРШЕНО!
@@ -310,7 +568,13 @@ void EndSort(AppState& state) {
     // Запускаємо зелену хвилю!
     state.is_animating_finish = true;
     state.finish_anim_index = 0;
-    state.log_history.push_back("[Success] Selection Sort завершив роботу!");
+    
+    std::string final_arr_str = "";
+    for (int val : state.arr) {
+        final_arr_str += std::to_string(val) + " ";
+    }
+    state.log_history.push_back("[Data] Відсортований масив: " + final_arr_str);
+    state.log_history.push_back("[Success] Сортування успішно завершено!");
 }
 
 void ClearStates(AppState& state) {
@@ -331,4 +595,24 @@ void ClearStates(AppState& state) {
     state.merge_curr_size = 1;
     state.merge_left_start = 0;
     state.merge_buffer.clear();
+
+    state.qs_stack.clear();
+    state.qs_initialized = false;
+    state.qs_is_partitioning = false;
+    state.qs_low = 0;
+    state.qs_high = 0;
+    state.qs_i = 0;
+    state.qs_j = 0;
+    state.qs_pivot = 0;
+
+    state.shell_gap = 0;
+    state.shell_i = 0;
+    state.shell_j = 0;
+    
+    state.shaker_initialized = false;
+    state.shaker_left = 0;
+    state.shaker_right = 0;
+    state.shaker_i = 0;
+    state.shaker_dir = 1;
+    state.shaker_swapped = false;
 }

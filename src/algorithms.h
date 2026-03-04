@@ -7,5 +7,8 @@ void BubbleSort(AppState& state);
 void SelectionSort(AppState& state);
 void InsertionSort(AppState& state);
 void MergeSort(AppState& state);
+void QuickSort(AppState& state);
+void ShellSort(AppState& state);
+void CocktailShakerSort(AppState& state);
 void EndSort(AppState& state);
 void ClearStates(AppState& state);

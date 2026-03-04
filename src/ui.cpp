@@ -5,8 +5,80 @@
 #include <vector>
 #include <algorithm>
 #include <sstream>
+#include <cmath>
+
+void ApplyTheme() {
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImVec4* colors = style.Colors;
+
+    // Темний кібер-фон (Глибокий синьо-чорний)
+    colors[ImGuiCol_WindowBg]       = ImVec4(0.04f, 0.05f, 0.09f, 1.00f);
+    colors[ImGuiCol_ChildBg]        = ImVec4(0.04f, 0.05f, 0.09f, 1.00f);
+    colors[ImGuiCol_PopupBg]        = ImVec4(0.04f, 0.05f, 0.09f, 0.96f);
+
+    // Неонові рамки (Бірюзове світіння)
+    colors[ImGuiCol_Border]         = ImVec4(0.00f, 1.00f, 0.80f, 0.40f);
+    colors[ImGuiCol_BorderShadow]   = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+
+    // Фони полів вводу (Dropdowns, Inputs)
+    colors[ImGuiCol_FrameBg]        = ImVec4(0.10f, 0.12f, 0.18f, 1.00f);
+    colors[ImGuiCol_FrameBgHovered] = ImVec4(0.15f, 0.20f, 0.30f, 1.00f);
+    colors[ImGuiCol_FrameBgActive]  = ImVec4(0.00f, 0.50f, 0.80f, 1.00f);
+
+    // Кнопки (Кібер-синій переходить у яскравий Бірюзовий при наведенні)
+    colors[ImGuiCol_Button]         = ImVec4(0.00f, 0.40f, 0.60f, 1.00f);
+    colors[ImGuiCol_ButtonHovered]  = ImVec4(0.00f, 0.60f, 0.80f, 1.00f);
+    colors[ImGuiCol_ButtonActive]   = ImVec4(0.00f, 0.80f, 1.00f, 1.00f);
+
+    // Заголовки (Combo box, Radio buttons)
+    colors[ImGuiCol_Header]         = ImVec4(0.00f, 0.40f, 0.60f, 1.00f);
+    colors[ImGuiCol_HeaderHovered]  = ImVec4(0.00f, 0.60f, 0.80f, 1.00f);
+    colors[ImGuiCol_HeaderActive]   = ImVec4(0.00f, 0.80f, 1.00f, 1.00f);
+
+    // Повзунок швидкості (Slider) - робимо його яскравим
+    colors[ImGuiCol_SliderGrab]     = ImVec4(0.00f, 1.00f, 0.80f, 1.00f);
+    colors[ImGuiCol_SliderGrabActive]= ImVec4(0.00f, 0.80f, 1.00f, 1.00f);
+    
+    // Смуга прокрутки логів
+    colors[ImGuiCol_ScrollbarBg]    = ImVec4(0.02f, 0.02f, 0.04f, 0.50f);
+    colors[ImGuiCol_ScrollbarGrab]  = ImVec4(0.00f, 0.40f, 0.60f, 1.00f);
+    colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.00f, 0.60f, 0.80f, 1.00f);
+
+    // Текст (Світло-блакитний замість чисто білого)
+    colors[ImGuiCol_Text]           = ImVec4(0.85f, 0.95f, 1.00f, 1.00f);
+
+    // Геометрія: робимо все трішки кутастим, як у справжніх терміналах
+    style.WindowRounding    = 4.0f;
+    style.ChildRounding     = 4.0f;
+    style.FrameRounding     = 2.0f;
+    style.PopupRounding     = 4.0f;
+    style.ScrollbarRounding = 2.0f;
+    style.GrabRounding      = 2.0f;
+    
+    // Вмикаємо товстіші рамки, щоб неон було видно
+    style.WindowBorderSize  = 1.0f;
+    style.ChildBorderSize   = 1.0f;
+    style.FrameBorderSize   = 1.0f;
+}
 
 void RenderUI(AppState& state) {
+    static bool last_theme_state = !state.enable_elements; 
+
+    if (state.enable_elements != last_theme_state) {
+        if (state.enable_elements) {
+            ApplyTheme(); // Заливаємо все неоном!
+        } else {
+            // Повертаємо дефолтну темну тему ImGui та скидаємо заокруглення
+            ImGui::StyleColorsDark(); 
+            ImGuiStyle& style = ImGui::GetStyle();
+            style.WindowRounding = 0.0f;
+            style.ChildRounding = 0.0f;
+            style.FrameRounding = 0.0f;
+            style.PopupRounding = 0.0f;
+        }
+        last_theme_state = state.enable_elements;
+    }
+
     // --- ТАЙМЕР АНІМАЦІЇ ---
     double current_time = ImGui::GetTime(); // Отримуємо час від запуску програми (в секундах)
     
@@ -30,7 +102,13 @@ void RenderUI(AppState& state) {
             BubbleSort(state); // Бульбашка тепер третя в списку (індекс 2)
         } else if (state.current_algo == 3) {
             MergeSort(state);
-        }
+        } else if (state.current_algo == 4) {
+            QuickSort(state);
+        } else if (state.current_algo == 5) {
+            ShellSort(state);
+        } else if (state.current_algo == 6) {
+            CocktailShakerSort(state);
+        } 
         
         state.last_step_time = current_time; 
     }
@@ -98,19 +176,43 @@ void RenderUI(AppState& state) {
             "Cocktail Shaker (Лаба 7)" 
         };
         ImGui::Text("Алгоритм:");
-        if(ImGui::Combo("##algo", &state.current_algo, algos, IM_ARRAYSIZE(algos))) { // ## приховує стандартний підпис збоку
-            if (!state.is_sorting) {
-                state.arr = state.initial_arr;
-                ClearStates(state);
-            }
-        } 
+        if(ImGui::Combo("##algo", &state.current_algo, algos, IM_ARRAYSIZE(algos))) { 
+            state.arr = state.initial_arr;
+            state.is_sorting = false;
+            state.is_animating_finish = false; // Зупиняємо зелену хвилю, якщо вона була
+            ClearStates(state);
+            state.log_history.push_back("[System] Алгоритм змінено. Масив скинуто.");
+        }
         
         ImGui::Spacing();
         
+        ImGui::Text("Напрямок сортування:");
+        if (ImGui::RadioButton("Зростання", !state.sort_descending)) {
+            state.sort_descending = false;
+            // Скидаємо масив, якщо вже відсортовано
+            if (!state.is_sorting && state.is_sorted) { state.arr = state.initial_arr; ClearStates(state); }
+            state.log_history.push_back("[Action] Напрямок змінено: Зростання");
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Спадання", state.sort_descending)) {
+            state.sort_descending = true;
+            if (!state.is_sorting && state.is_sorted) { state.arr = state.initial_arr; ClearStates(state); }
+            state.log_history.push_back("[Action] Напрямок змінено: Спадання");
+        }
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+        
+        ImGui::Text("Кібер-Налаштування:");
+        ImGui::Checkbox("Хакерський фон", &state.enable_cyber_bg);
+        ImGui::Checkbox("Неонові елементи", &state.enable_elements);
+
         const char* visuals[] = { "Орбіти", "Світловий спектр", "Стовпчики", "Звичайні числа" };
         ImGui::Text("Візуалізація:");
         ImGui::Combo("##vis", &state.current_vis, visuals, IM_ARRAYSIZE(visuals));
         
+        ImGui::Spacing();
+        ImGui::Separator();
         ImGui::Spacing();
                 
         const char* systems[] = { "Десяткова (Dec)", "Шістнадцяткова (Hex)", "Двійкова (Bin)", "Вісімкова (Oct)" };
@@ -197,6 +299,56 @@ void RenderUI(AppState& state) {
                 // Полотно візуалізатора (Ліворуч)
                 ImGui::BeginChild("VisualizerArea", ImVec2(visualizer_width, 0), true);
                 
+                // --- BACKGROUND ---
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                ImVec2 v_min = ImGui::GetCursorScreenPos(); 
+                ImVec2 v_max = ImVec2(v_min.x + ImGui::GetContentRegionAvail().x, v_min.y + ImGui::GetContentRegionAvail().y);
+                
+                if (state.enable_cyber_bg) {
+                    float t = (float)ImGui::GetTime(); 
+
+                    // 1. АНІМОВАНИЙ ГРАДІЄНТНИЙ ФОН
+                    ImU32 col_top_left  = ImGui::GetColorU32(ImVec4(0.01f, 0.01f, 0.03f, 1.0f)); 
+                    ImU32 col_top_right = ImGui::GetColorU32(ImVec4(0.05f, 0.01f, 0.05f, 1.0f)); 
+                    ImU32 col_bot_left  = ImGui::GetColorU32(ImVec4(0.0f, 0.1f + sin(t*0.5f)*0.05f, 0.15f, 1.0f)); 
+                    ImU32 col_bot_right = ImGui::GetColorU32(ImVec4(0.0f, 0.05f, 0.1f, 1.0f));   
+                    draw_list->AddRectFilledMultiColor(v_min, v_max, col_top_left, col_top_right, col_bot_right, col_bot_left);
+
+                    // 2. РУХОМА ПАРАЛАКС-СІТКА
+                    float grid_sz = 60.0f;
+                    float speed = 30.0f;
+                    float offset_y = fmodf(t * speed, grid_sz);
+                    for (float y = v_min.y + offset_y; y < v_max.y; y += grid_sz) {
+                        float alpha_factor = (y - v_min.y) / (v_max.y - v_min.y); 
+                        draw_list->AddLine(ImVec2(v_min.x, y), ImVec2(v_max.x, y), ImGui::GetColorU32(ImVec4(0.0f, 0.8f, 1.0f, 0.02f + alpha_factor * 0.15f)), 1.0f);
+                    }
+                    for (float x = v_min.x; x < v_max.x; x += grid_sz) {
+                        float dist_to_center = std::abs((x - v_min.x) - (v_max.x - v_min.x)/2.0f) / ((v_max.x - v_min.x)/2.0f);
+                        draw_list->AddLine(ImVec2(x, v_min.y), ImVec2(x, v_max.y), ImGui::GetColorU32(ImVec4(0.0f, 0.8f, 1.0f, std::max(0.0f, 0.2f - dist_to_center * 0.18f))), 1.0f);
+                    }
+
+                    // 3. ЦИФРОВИЙ ПИЛ
+                    for (int i = 0; i < 40; i++) {
+                        float px = v_min.x + fmodf(std::abs(sin(i * 123.456f + t*0.2f)) * 9999.0f, v_max.x - v_min.x);
+                        float py = v_min.y + fmodf(std::abs(cos(i * 789.123f - t*0.3f)) * 9999.0f, v_max.y - v_min.y);
+                        float p_alpha = (sin(t * 3.0f + i) + 1.0f) * 0.3f; 
+                        draw_list->AddCircleFilled(ImVec2(px, py), 1.5f, ImGui::GetColorU32(ImVec4(0.5f, 1.0f, 1.0f, p_alpha)));
+                    }
+
+                    // 4. ЛАЗЕРНИЙ СКАНЕР
+                    float scanline_h = 120.0f; 
+                    float scanline_y = v_min.y + fmodf(t * 200.0f, (v_max.y - v_min.y) + scanline_h) - scanline_h;
+                    if (scanline_y > v_min.y - scanline_h && scanline_y < v_max.y) {
+                        draw_list->AddRectFilledMultiColor(ImVec2(v_min.x, scanline_y), ImVec2(v_max.x, scanline_y + scanline_h/2), IM_COL32(0,0,0,0), IM_COL32(0,0,0,0), ImGui::GetColorU32(ImVec4(0.0f, 1.0f, 0.8f, 0.1f)), ImGui::GetColorU32(ImVec4(0.0f, 1.0f, 0.8f, 0.1f)));
+                        draw_list->AddLine(ImVec2(v_min.x, scanline_y + scanline_h/2), ImVec2(v_max.x, scanline_y + scanline_h/2), ImGui::GetColorU32(ImVec4(0.0f, 1.0f, 0.8f, 0.8f)), 2.0f);
+                        draw_list->AddRectFilledMultiColor(ImVec2(v_min.x, scanline_y + scanline_h/2), ImVec2(v_max.x, scanline_y + scanline_h), ImGui::GetColorU32(ImVec4(0.0f, 1.0f, 0.8f, 0.1f)), ImGui::GetColorU32(ImVec4(0.0f, 1.0f, 0.8f, 0.1f)), IM_COL32(0,0,0,0), IM_COL32(0,0,0,0));
+                    }
+                } else {
+                    // ЯКЩО ФОН ВИМКНЕНО - просто малюємо звичайний темний колір
+                    draw_list->AddRectFilled(v_min, v_max, IM_COL32(15, 15, 20, 255));
+                }
+                // --- КІНЕЦЬ ФОНУ ---
+
                 // Якщо масив не пустий, починаємо малювати
                 if (!state.arr.empty()) {
                     VisualChoice(state.current_vis, state);        
@@ -209,77 +361,8 @@ void RenderUI(AppState& state) {
                 ImGui::SameLine();
 
             // Панель коду (Праворуч)
-                // Додаємо прапорець ImGuiWindowFlags_NoBackground, щоб ми могли самі намалювати фон (якщо захочемо)
                 ImGui::BeginChild("CodeArea", ImVec2(0, 0), true);
-                
-                // --- МАЛЮЄМО "ШАПКУ" ЯК У macOS ---
-                // Отримуємо доступ до списку малювання
-                ImDrawList* draw_list = ImGui::GetWindowDrawList();
-                // Отримуємо позицію курсора (лівий верхній кут цього дочірнього вікна)
-                ImVec2 p = ImGui::GetCursorScreenPos();
-                
-                // Малюємо три кружечки (червоний, жовтий, зелений)
-                // IM_COL32 - це макрос для створення кольору (R, G, B, Alpha)
-                draw_list->AddCircleFilled(ImVec2(p.x + 12, p.y + 12), 6.0f, IM_COL32(255, 95, 86, 255));  // Red
-                draw_list->AddCircleFilled(ImVec2(p.x + 32, p.y + 12), 6.0f, IM_COL32(255, 189, 46, 255)); // Yellow
-                draw_list->AddCircleFilled(ImVec2(p.x + 52, p.y + 12), 6.0f, IM_COL32(39, 201, 63, 255));  // Green
-                
-                // Відступаємо місце після кружечків
-                ImGui::Dummy(ImVec2(0, 25)); 
-                // ----------------------------------
-
-                ImGui::Text(" Файл: bubble_sort.cpp");
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                // Визначаємо круті кольори для коду
-                ImVec4 col_keyword = ImVec4(0.86f, 0.44f, 0.84f, 1.0f); // Фіолетовий (void, for, if)
-                ImVec4 col_type    = ImVec4(0.34f, 0.65f, 0.92f, 1.0f); // Синій (int)
-                ImVec4 col_active  = ImVec4(1.0f, 0.9f, 0.2f, 1.0f);    // Яскраво-жовтий (активний рядок)
-                ImVec4 col_normal  = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);    // Білий
-                ImVec4 col_green   = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);    // Зелений
-
-                // Імітація підсвічування коду. 
-                // Щоб зробити різні кольори в одному рядку, використовуємо ImGui::SameLine()
-                
-                // void bubbleSort(int arr[], int n) {
-                ImGui::TextColored(col_keyword, "void "); ImGui::SameLine();
-                ImGui::TextColored(col_normal, "bubbleSort("); ImGui::SameLine();
-                ImGui::TextColored(col_type, "int "); ImGui::SameLine();
-                ImGui::TextColored(col_normal, "arr[], "); ImGui::SameLine();
-                ImGui::TextColored(col_type, "int "); ImGui::SameLine();
-                ImGui::TextColored(col_normal, "n) {");
-                
-                // for (int i = 0; i < n - 1; i++) {
-                ImGui::Text("  "); ImGui::SameLine(); // Відступ
-                ImGui::TextColored(col_keyword, "for "); ImGui::SameLine();
-                ImGui::TextColored(col_normal, "("); ImGui::SameLine();
-                ImGui::TextColored(col_type, "int "); ImGui::SameLine();
-                ImGui::TextColored(col_normal, "i = 0; i < n - 1; i++) {");
-
-                // for (int j = 0; j < n - i - 1; j++) {
-                ImGui::Text("    "); ImGui::SameLine();
-                ImGui::TextColored(col_keyword, "for "); ImGui::SameLine();
-                ImGui::TextColored(col_normal, "("); ImGui::SameLine();
-                ImGui::TextColored(col_type, "int "); ImGui::SameLine();
-                ImGui::TextColored(col_normal, "j = 0; j < n - i - 1; j++) {");
-                
-                ImGui::Spacing();
-                // АКТИВНИЙ РЯДОК (Світиться жовтим)
-                // if (arr[j] > arr[j + 1]) {
-                ImGui::Text("      "); ImGui::SameLine();
-                ImGui::TextColored(col_active, "if (arr[j] > arr[j + 1]) { "); ImGui::SameLine();
-                ImGui::TextColored(col_green, "// ПОРІВНЯННЯ"); 
-                
-                // swap(arr[j], arr[j + 1]);
-                ImGui::Text("        "); ImGui::SameLine();
-                ImGui::TextColored(col_normal, "swap(arr[j], arr[j + 1]);");
-
-                ImGui::TextColored(col_normal, "      }");
-                ImGui::TextColored(col_normal, "    }");
-                ImGui::TextColored(col_normal, "  }");
-                ImGui::TextColored(col_normal, "}");
-
+                RenderCodePanel(state); // <--- Викликаємо нашу нову функцію!
                 ImGui::EndChild();
             ImGui::EndChild(); // Кінець верхнього блоку
 
@@ -301,18 +384,28 @@ void RenderUI(AppState& state) {
             // false - без рамки, ImGuiWindowFlags_AlwaysVerticalScrollbar - завжди показувати скрол
             ImGui::BeginChild("LogScroll", ImVec2(0, 0), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
             
-            ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "[System] Візуалізатор успішно запущено.");
-            ImGui::Text("[Action] Обрано алгоритм: %s", algos[state.current_algo]); 
-            ImGui::Text("[Action] Обрано візуалізацію: %s", visuals[state.current_vis]);
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "[System] Візуалізатор успішно запущено.");
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "[Action] Обрано алгоритм: %s", algos[state.current_algo]); 
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "[Action] Обрано візуалізацію: %s", visuals[state.current_vis]);
             
             // Виводимо наш зафіксований початковий масив
             if (!state.initial_array_str.empty()) {
-                ImGui::Text("[Data] Початковий масив: %s", state.initial_array_str.c_str());
+                ImGui::TextColored(ImVec4(0.3f, 0.6f, 1.0f, 1.0f), "[Data] Початковий масив: %s", state.initial_array_str.c_str());
             }
 
             // Виводимо всю історію кроків
             for (const auto& log_msg : state.log_history) {
-                ImGui::Text("%s", log_msg.c_str());
+                if (log_msg.find("[Success]") == 0) {
+                    ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "%s", log_msg.c_str()); // Зелений
+                } else if (log_msg.find("[Action]") == 0) {
+                    ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "%s", log_msg.c_str()); // Жовтий
+                } else if (log_msg.find("[Data]") == 0) {
+                    ImGui::TextColored(ImVec4(0.3f, 0.6f, 1.0f, 1.0f), "%s", log_msg.c_str()); // Блакитний
+                } else if (log_msg.find("[System]") == 0) {
+                    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "%s", log_msg.c_str()); // Світло-сірий
+                } else {
+                    ImGui::Text("%s", log_msg.c_str()); // Стандартний (для алгоритмів)
+                }
             }
             
             // Автоматична прокрутка до самого низу, коли додаються нові логи

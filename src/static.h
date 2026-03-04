@@ -31,6 +31,7 @@ struct AppState {
     bool is_swapping = false;
     bool is_sorted = false;           // Чи масив вже відсортований
     bool show_success_popup = false;  // Тригер для спливаючого вікна
+    bool sort_descending = false;     // Чи сортуємо за спаданням чи зростанням
 
     // Індекси для циклів Bubble Sort (заміна i та j)
     int bubble_i = 0;
@@ -53,6 +54,29 @@ struct AppState {
     int merge_k = 0;            // ="="="="="="="="
     std::vector<int> merge_buffer; // Тимчасовий масив для злиття
 
+    // Змінні для Quick Sort (ітеративний підхід) 
+    std::vector<std::pair<int, int>> qs_stack; // Наш стек для заміни рекурсії
+    bool qs_initialized = false;     // Чи закинули ми початковий масив у стек
+    bool qs_is_partitioning = false; // Чи ми зараз ділимо масив на дві частини
+    int qs_low = 0;
+    int qs_high = 0;
+    int qs_i = 0;
+    int qs_j = 0;
+    int qs_pivot = 0;
+
+    // --- Змінні для Cocktail Shaker Sort ---
+    bool shaker_initialized = false;
+    int shaker_left = 0;
+    int shaker_right = 0;
+    int shaker_i = 0;
+    int shaker_dir = 1; // 1 = йдемо вправо, -1 = йдемо вліво
+    bool shaker_swapped = false; // Оптимізація: якщо не було обмінів - сортування завершено
+
+    // --- Змінні для Shell Sort ---
+    int shell_gap = 0; // Наш "крок" стрибка
+    int shell_i = 0;
+    int shell_j = 0;
+
     // Індекси елементів, які треба підсвітити жовтим (які зараз порівнюються)
     int highlight_1 = -1;
     int highlight_2 = -1;
@@ -64,4 +88,8 @@ struct AppState {
     bool is_animating_finish = false;
     int finish_anim_index = -1; // Який стовпчик зараз зеленіє
     double last_anim_time = 0.0;
+
+    // --- Налаштування візуалу ---
+    bool enable_cyber_bg = false;       // Чи малювати матричний фон
+    bool enable_elements = false; // Чи робити елементи неоновими та прозорими
 };
