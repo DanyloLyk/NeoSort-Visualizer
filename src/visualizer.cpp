@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <thread>
+#include <chrono>
 
 #include "imgui.h"
 #include "visualizer.h"
@@ -218,12 +220,26 @@ void GenerateNumbers(AppState& state) {
     
     ImFont* font = ImGui::GetFont();
     
-    // Рахуємо таймер для плавної анімації
+    // Рахуємо загальний таймер кроку (від 0.0 до 1.0)
     double current_time = ImGui::GetTime();
     double delay = 0.05 / state.speed;
     float t = (float)((current_time - state.last_step_time) / delay);
     if (t > 1.0f || !state.is_sorting) t = 1.0f;
 
+    // --- МАГІЯ ПАУЗ (KEYFRAMING) ---
+    // t_jump - це "реальний" прогрес самого стрибка
+    float t_jump = 0.0f;
+    if (t < 0.2f) {
+        // Фаза 1: "Думають" перед стрибком (20% часу)
+        t_jump = 0.0f; 
+    } else if (t > 0.8f) {
+        // Фаза 3: Приземлилися і чекають наступного кроку (20% часу)
+        t_jump = 1.0f; 
+    } else {
+        // Фаза 2: Сам стрибок (розтягуємо залишок часу на 100% стрибка)
+        t_jump = (t - 0.2f) / 0.6f; 
+    }
+    // --------------------------------
     // --- РОЗМІР КВАДРАТІВ ---
     // Квадрат буде займати 80% від доступного кроку, але не більше 80 пікселів, щоб не бути гігантом
     float box_size = std::min(step_x * 0.8f, 80.0f); 
@@ -238,7 +254,7 @@ void GenerateNumbers(AppState& state) {
         float target_cx = canvas_pos.x + j * step_x + (step_x / 2.0f);
         float target_cy = base_center_y;
 
-        // Кольори за замовчуванням (Стильні темно-сині блоки)
+        // Кольори за замовчуванням (темно-сині блоки)
         ImU32 box_col = IM_COL32(40, 60, 100, 255);       // Фон квадрата
         ImU32 border_col = IM_COL32(100, 200, 255, 255);  // Рамка
         ImU32 text_col = IM_COL32(255, 255, 255, 255);    // Білий текст
@@ -252,23 +268,26 @@ void GenerateNumbers(AppState& state) {
             border_col = IM_COL32(255, 255, 255, 255); // Біла рамка
             text_col = IM_COL32(0, 0, 0, 255);        // ЧОРНИЙ текст для контрасту
 
-            current_box_size *= 1.15f; // Квадрат трохи "надувається"
-            current_font_size *= 1.15f;
+            current_box_size *= 1.2f; // Квадрат трохи "надувається"
+            current_font_size *= 1.2f;
 
             // АНІМАЦІЯ СТРИБКА
             if (state.is_swapping) {
-                // ЗМЕНШЕНА висота стрибка (було 0.25f, стало 0.12f - більш акуратна дуга)
                 float arc_height = canvas_size.y * 0.12f; 
                 float start_cx;
                 
                 if (j == state.highlight_1) {
-                    start_cx = target_cx + step_x;
-                    target_cx = start_cx + (target_cx - start_cx) * t;
-                    target_cy -= sin(t * M_PI) * arc_height; // Стрибок ЧЕРЕЗ ВЕРХ
+                    start_cx = canvas_pos.x + state.highlight_2 * step_x + (step_x / 2.0f);
+                    
+                    // ВИКОРИСТОВУЄМО t_jump ЗАМІСТЬ t !
+                    target_cx = start_cx + (target_cx - start_cx) * t_jump;
+                    target_cy -= sin(t_jump * M_PI) * arc_height; 
                 } else if (j == state.highlight_2) {
-                    start_cx = target_cx - step_x;
-                    target_cx = start_cx + (target_cx - start_cx) * t;
-                    target_cy += sin(t * M_PI) * arc_height; // Стрибок ЧЕРЕЗ НИЗ
+                    start_cx = canvas_pos.x + state.highlight_1 * step_x + (step_x / 2.0f);
+                    
+                    // ВИКОРИСТОВУЄМО t_jump ЗАМІСТЬ t !
+                    target_cx = start_cx + (target_cx - start_cx) * t_jump;
+                    target_cy += sin(t_jump * M_PI) * arc_height; 
                 }
             }
         } else if (state.is_animating_finish && (int)j <= state.finish_anim_index) {

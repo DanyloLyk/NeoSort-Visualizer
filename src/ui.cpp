@@ -14,12 +14,25 @@ void RenderUI(AppState& state) {
     // Якщо спід = 1.0 (норма) -> затримка 0.05с.
     // Якщо спід = 5.0 (макс) -> затримка 0.01с (літає).
     // Якщо спід = 0.1 (мін) -> затримка 0.5с (повзе).
-    double delay = 0.05 / state.speed; 
+    double delay = 0.1 / state.speed; 
+    if(state.speed == 10.0) delay = 0;
 
     // Робимо крок алгоритму ТІЛЬКИ якщо ми сортуємо І пройшло достатньо часу
+    // Робимо крок алгоритму ТІЛЬКИ якщо ми сортуємо І пройшло достатньо часу
     if (state.is_sorting && (current_time - state.last_step_time) >= delay) {
-        BubbleSort(state);
-        state.last_step_time = current_time; // Запам'ятовуємо час цього кроку
+        
+        // Викликаємо потрібний алгоритм залежно від вибору в меню
+        if (state.current_algo == 0) {
+            SelectionSort(state);
+        } else if (state.current_algo == 1) {
+            InsertionSort(state);
+        } else if (state.current_algo == 2) {
+            BubbleSort(state); // Бульбашка тепер третя в списку (індекс 2)
+        } else if (state.current_algo == 3) {
+            MergeSort(state);
+        }
+        
+        state.last_step_time = current_time; 
     }
     
     // --- ТАЙМЕР ЗЕЛЕНОЇ ХВИЛІ ---
@@ -59,9 +72,7 @@ void RenderUI(AppState& state) {
             // Якщо масив вже був зелений, скидаємо прогрес, щоб "перепрогнати" його
             if (state.is_sorted) {
                 state.arr = state.initial_arr;
-                state.bubble_i = 0;
-                state.bubble_j = 0;
-                state.is_sorted = false;
+                ClearStates(state);
             }
             state.is_sorting = true;
             state.log_history.push_back("[System] Сортування запущено!");
@@ -77,13 +88,20 @@ void RenderUI(AppState& state) {
         ImGui::Spacing(); ImGui::Spacing();
         
         // Змінні для зберігання поточного вибору (static, щоб не скидались кожен кадр)
-        const char* algos[] = { "Bubble Sort", "Quick Sort", "Merge Sort", "Insertion Sort" };
+        const char* algos[] = { 
+            "Selection Sort (Лаба 1)", 
+            "Insertion Sort (Лаба 2)", 
+            "Bubble Sort (Лаба 3)", 
+            "Merge Sort (Лаба 4)", 
+            "Quick Sort (Лаба 5)", 
+            "Shell Sort (Лаба 6)", 
+            "Cocktail Shaker (Лаба 7)" 
+        };
         ImGui::Text("Алгоритм:");
         if(ImGui::Combo("##algo", &state.current_algo, algos, IM_ARRAYSIZE(algos))) { // ## приховує стандартний підпис збоку
             if (!state.is_sorting) {
                 state.arr = state.initial_arr;
-                state.is_sorted = false;
-                state.bubble_i = 0; state.bubble_j = 0;
+                ClearStates(state);
             }
         } 
         
@@ -134,42 +152,7 @@ void RenderUI(AppState& state) {
         ImGui::InputText("##custom_arr", state.custom_array_input, IM_ARRAYSIZE(state.custom_array_input));
         
         if (ImGui::Button("Застосувати свій масив", ImVec2(-1, 30))) {
-            std::vector<int> new_arr;
-            std::string input(state.custom_array_input);
-            
-            // Замінюємо коми на пробіли, щоб можна було вводити "10, 20, 30"
-            std::replace(input.begin(), input.end(), ',', ' ');
-            
-            std::stringstream ss(input);
-            std::string temp;
-            
-            // Розбиваємо рядок на числа і пушимо в новий масив
-            while (ss >> temp) {
-                try {
-                    new_arr.push_back(std::stoi(temp)); // Конвертуємо текст у число
-                } catch (...) { /* Ігноруємо те, що не є числом (букви і т.д.) */ }
-            }
-            
-            // Якщо вдалося знайти хоч одне число, оновлюємо масив!
-            if (!new_arr.empty()) {
-                state.arr = new_arr;
-                state.initial_arr = new_arr;
-                state.array_size = new_arr.size(); // Оновлюємо повзунок розміру
-                
-                // Скидаємо стани
-                state.is_sorting = false;
-                state.is_sorted = false;
-                state.is_animating_finish = false;
-                state.bubble_i = 0;
-                state.bubble_j = 0;
-                state.highlight_1 = -1;
-                state.highlight_2 = -1;
-                
-                // Оновлюємо логи
-                state.initial_array_str = input;
-                state.log_history.clear();
-                state.log_history.push_back("[System] Завантажено власний масив (" + std::to_string(state.array_size) + " елементів)");
-            }
+            OwnArray(state);
         }
 
         ImGui::EndChild();

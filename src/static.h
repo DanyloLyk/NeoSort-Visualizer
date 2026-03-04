@@ -12,7 +12,7 @@ struct AppState {
     
     float speed = 10.0f;
     double last_step_time = 0.0;
-    int array_size = 25; // Розмір нашого масиву (за замовчуванням 50)
+    int array_size = 50; // Розмір нашого масиву (за замовчуванням 50)
     int min_value = -100;
     int max_value = 100;
     
@@ -35,6 +35,23 @@ struct AppState {
     // Індекси для циклів Bubble Sort (заміна i та j)
     int bubble_i = 0;
     int bubble_j = 0;
+
+    // Індекси для циклів Selection Sort (заміна i та j)
+    int sel_i = 0;
+    int sel_j = 1;
+    int sel_min_idx = 0;   
+    
+    // Індекси для циклів Insertion Sort (заміна i та j)
+    int ins_i = 1;              // Починаємо з 1-го елемента (0-й вже вважається "відсортованим")
+    int ins_j = 1;              // Внутрішній індекс, який буде бігти вліво
+
+    // Змінні для Merge Sort (ітеративний підхід) 
+    int merge_curr_size = 1;    // Розмір блоків, які ми зараз зливаємо (1, 2, 4, 8...)
+    int merge_left_start = 0;   // Початок лівого підмасиву
+    int merge_i = 0;            // Внутрішні змінні для процесу злиття (merge)
+    int merge_j = 0;            // ="="="="="="="="
+    int merge_k = 0;            // ="="="="="="="="
+    std::vector<int> merge_buffer; // Тимчасовий масив для злиття
 
     // Індекси елементів, які треба підсвітити жовтим (які зараз порівнюються)
     int highlight_1 = -1;
