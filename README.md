@@ -111,22 +111,30 @@ graph TD
 **1. Встановлення залежностей:**
 
 ```bash
-# Для Arch Linux:
-sudo pacman -S base-devel glfw-x11
+# For Arch Linux:
+sudo pacman -S base-devel glfw-x11 fonts-noto-core
+
+# For Ubuntu/Debian:
+sudo apt update
+sudo apt install build-essential libglfw3-dev libgl1-mesa-dev libglew-dev fonts-noto-core
 ```
 
 **2. Клонування та збірка:**
 
 ```bash
-git clone https://github.com/TVIY_NICK/NeoSort.git
-cd NeoSort
-make
+git clone https://github.com/DanyloLyk/NeoSort-Visualizer.git
+cd NeoSort-Visualizer
+git submodule update --init --recursive  
 ```
 
 **3. Запуск:**
 
 ```bash
-./visualizer
+cd build
+rm -rf *
+cmake ..
+make
+./Algorithms
 ```
 
 ### 🪟 Windows (MinGW)
