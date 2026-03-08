@@ -211,34 +211,47 @@ std::string FormatNum(int val, int sys) {
     return ss.str();
 }
 
-// =========================================================
-// НОВІ ФУНКЦІЇ ВІЗУАЛІЗАЦІЇ
-// =========================================================
-
 // Допоміжна функція для малювання одного блоку (квадрата з числом)
-void DrawNumberBox(ImDrawList* draw_list, ImVec2 center, float size, int val, int index, AppState& state, ImFont* font) {
+void DrawNumberBox(ImDrawList* draw_list, ImVec2 center, float size, int val, int index, AppState& state, ImFont* font, bool is_active = true, bool is_pivot = false) {
     std::string text = FormatNum(val, state.current_sys);
     float font_size = size * 0.45f;
     if (font_size < 12.0f) font_size = 12.0f;
 
-    ImU32 box_col = IM_COL32(40, 60, 100, 255);
-    ImU32 border_col = IM_COL32(100, 200, 255, 255);
-    ImU32 text_col = IM_COL32(255, 255, 255, 255);
+    // Базові кольори з урахуванням прозорості (якщо елемент не активний - він темнішає)
+    int alpha = is_active ? 255 : 60; // 60 - напівпрозорий привид
+    
+    ImU32 box_col = IM_COL32(40, 60, 100, alpha);
+    ImU32 border_col = IM_COL32(100, 200, 255, alpha);
+    ImU32 text_col = IM_COL32(255, 255, 255, alpha);
 
     // Логіка кольорів
-    if (state.is_sorting && (index == state.highlight_1 || index == state.highlight_2)) {
+    if (is_pivot) {
+        // ОПОРНИЙ ЕЛЕМЕНТ (Pivot) для Quick Sort - Неоновий червоний/рожевий
+        box_col = IM_COL32(200, 20, 80, 255);
+        border_col = IM_COL32(255, 50, 150, 255);
+        text_col = IM_COL32(255, 255, 255, 255);
+        size *= 1.1f; 
+    } 
+    else if (state.is_sorting && (index == state.highlight_1 || index == state.highlight_2)) {
+        // Елементи, які зараз порівнюються
         box_col = IM_COL32(255, 215, 0, 255);
         border_col = IM_COL32(255, 255, 255, 255);
         text_col = IM_COL32(0, 0, 0, 255);
-        size *= 1.2f; // Активний елемент трохи більший
+        size *= 1.2f; 
         font_size *= 1.2f;
-    } else if (state.is_animating_finish && index <= state.finish_anim_index) {
-        box_col = IM_COL32(50, 200, 50, 255);
-        border_col = IM_COL32(100, 255, 100, 255);
-    } else if (state.is_sorted && !state.is_animating_finish) {
+    } 
+    else if (state.is_animating_finish && index <= state.finish_anim_index) {
         box_col = IM_COL32(50, 200, 50, 255);
         border_col = IM_COL32(100, 255, 100, 255);
     } 
+    else if (state.is_sorted && !state.is_animating_finish) {
+        box_col = IM_COL32(50, 200, 50, 255);
+        border_col = IM_COL32(100, 255, 100, 255);
+    } 
+    else if (state.current_algo == 7 && !state.heap_phase_build && index > state.heap_i) {
+        box_col = IM_COL32(50, 200, 50, 255);
+        border_col = IM_COL32(100, 255, 100, 255);
+    }
     // --- FIX: Зелений колір для відсортованої частини Heap Sort ---
     else if (state.current_algo == 7 && !state.heap_phase_build && index > state.heap_i) {
         box_col = IM_COL32(50, 200, 50, 255);
@@ -263,23 +276,25 @@ void GenerateLinearNumbers(AppState& state, float t, float t_jump) {
     ImVec2 canvas_size = ImGui::GetContentRegionAvail();
     ImFont* font = ImGui::GetFont();
 
-    float step_x = canvas_size.x / state.arr.size();
+    // FIX: Додаємо відступи, щоб краї не обрізалися
+    float padding_x = 20.0f;
+    float step_x = (canvas_size.x - 2 * padding_x) / state.arr.size();
     float base_center_y = canvas_pos.y + canvas_size.y / 2.0f;
     float box_size = std::min(step_x * 0.8f, 80.0f);
 
     for (size_t j = 0; j < state.arr.size(); j++) {
-        float target_cx = canvas_pos.x + j * step_x + (step_x / 2.0f);
+        float target_cx = canvas_pos.x + padding_x + j * step_x + (step_x / 2.0f);
         float target_cy = base_center_y;
 
         // Анімація стрибка (Swap)
         if (state.is_sorting && state.is_swapping) {
             float arc_height = canvas_size.y * 0.12f;
             if (j == state.highlight_1) {
-                float start_cx = canvas_pos.x + state.highlight_2 * step_x + (step_x / 2.0f);
+                float start_cx = canvas_pos.x + padding_x + state.highlight_2 * step_x + (step_x / 2.0f);
                 target_cx = start_cx + (target_cx - start_cx) * t_jump;
                 target_cy -= sin(t_jump * M_PI) * arc_height;
             } else if (j == state.highlight_2) {
-                float start_cx = canvas_pos.x + state.highlight_1 * step_x + (step_x / 2.0f);
+                float start_cx = canvas_pos.x + padding_x + state.highlight_1 * step_x + (step_x / 2.0f);
                 target_cx = start_cx + (target_cx - start_cx) * t_jump;
                 target_cy += sin(t_jump * M_PI) * arc_height;
             }
@@ -362,26 +377,28 @@ void GeneratePartitionNumbers(AppState& state, float t, float t_jump) {
     ImVec2 canvas_size = ImGui::GetContentRegionAvail();
     ImFont* font = ImGui::GetFont();
 
-    float step_x = canvas_size.x / state.arr.size();
-    float base_center_y = canvas_pos.y + canvas_size.y / 2.0f - 40.0f; // Трохи вище центру
+    // FIX: Додаємо відступи
+    float padding_x = 20.0f;
+    float step_x = (canvas_size.x - 2 * padding_x) / state.arr.size();
+    float base_center_y = canvas_pos.y + canvas_size.y / 2.0f - 40.0f; 
     float box_size = std::min(step_x * 0.8f, 80.0f);
     
-    // Параметри зміщення
-    float active_offset_y = 80.0f; // Наскільки опускати активні блоки
-    float split_gap_x = 10.0f;     // Розрив між лівою і правою частиною (для Merge)
+    float active_offset_y = 100.0f; // Сильніше опускаємо активні блоки для контрасту
+    float split_gap_x = std::min(20.0f, step_x * 0.5f); // Розрив для Merge Sort
 
-    // Лямбда для розрахунку базової позиції X (щоб використовувати для start_cx і target_cx)
+    // Лямбда для X-координати (з урахуванням розривів)
     auto GetX = [&](int idx) -> float {
-        float x = canvas_pos.x + idx * step_x + (step_x / 2.0f);
-        if (state.current_algo == 3) { // Merge Sort Gap Logic
+        float x = canvas_pos.x + padding_x + idx * step_x + (step_x / 2.0f);
+        if (state.current_algo == 3 && state.merge_curr_size < state.arr.size()) { 
             int left = state.merge_left_start;
             int size = state.merge_curr_size;
             int mid = left + size;
             int right_end = std::min((int)state.arr.size(), left + 2 * size);
             
+            // Якщо ми всередині зони злиття, розсуваємо ліву і праву половини
             if (idx >= left && idx < right_end) {
-                if (idx >= mid) x += split_gap_x;
-                else x -= split_gap_x;
+                if (idx >= mid) x += split_gap_x; // Праву половину вправо
+                else x -= split_gap_x;            // Ліву вліво
             }
         }
         return x;
@@ -392,53 +409,60 @@ void GeneratePartitionNumbers(AppState& state, float t, float t_jump) {
         float target_cy = base_center_y;
 
         bool is_active = false;
+        bool is_pivot = false;
 
         // --- ЛОГІКА ДЛЯ MERGE SORT ---
-        if (state.current_algo == 3) { // Merge Sort
+        if (state.current_algo == 3) {
             int left = state.merge_left_start;
             int size = state.merge_curr_size;
             int right_end = std::min((int)state.arr.size(), left + 2 * size);
 
-            // Якщо елемент входить в поточну групу злиття
-            if (j >= left && j < right_end) {
+            if (state.merge_curr_size >= state.arr.size() || state.is_sorted) {
+                is_active = true; // Коли все відсортовано, все активне
+            } else if (j >= left && j < right_end) {
                 is_active = true;
-                target_cy += active_offset_y; // Опускаємо вниз
+                target_cy += active_offset_y; 
             }
         }
         // --- ЛОГІКА ДЛЯ QUICK SORT ---
-        else if (state.current_algo == 4) { // Quick Sort
-            // Якщо елемент входить в поточний діапазон Partition
-            if (j >= state.qs_low && j <= state.qs_high) {
+        else if (state.current_algo == 4) {
+            if (state.is_sorted) {
                 is_active = true;
-                target_cy += active_offset_y; // Опускаємо вниз
+            } else if (j >= state.qs_low && j <= state.qs_high) {
+                is_active = true;
+                target_cy += active_offset_y; 
+                
+                // Вказуємо опорний елемент
+                if (state.qs_is_partitioning && j == state.qs_high) {
+                    is_pivot = true;
+                }
             }
         }
 
-        // Анімація (якщо є)
-        // Для Merge Sort зазвичай немає swap-стрибків, але для Quick Sort є
+        // Анімація стрибків (переважно для Quick Sort)
         if (state.is_sorting && state.is_swapping && is_active) {
-             float arc_height = canvas_size.y * 0.12f;
+             float arc_height = canvas_size.y * 0.15f;
              if (j == state.highlight_1) {
-                 // FIX: Додана інтерполяція по X
                  float start_cx = GetX(state.highlight_2);
                  target_cx = start_cx + (target_cx - start_cx) * t_jump;
                  target_cy -= sin(t_jump * M_PI) * arc_height;
              } else if (j == state.highlight_2) {
-                 // FIX: Додана інтерполяція по X
                  float start_cx = GetX(state.highlight_1);
                  target_cx = start_cx + (target_cx - start_cx) * t_jump;
                  target_cy += sin(t_jump * M_PI) * arc_height;
              }
         }
 
-        DrawNumberBox(draw_list, ImVec2(target_cx, target_cy), box_size, state.arr[j], j, state, font);
+        // Малюємо кубик (передаємо is_active та is_pivot)
+        DrawNumberBox(draw_list, ImVec2(target_cx, target_cy), box_size, state.arr[j], j, state, font, is_active, is_pivot);
     }
     
-    // Додатковий підпис для активної зони
-    if (state.is_sorting) {
-        std::string label = (state.current_algo == 3) ? "MERGING" : "PARTITIONING";
-        ImVec2 label_pos = ImVec2(canvas_pos.x + canvas_size.x/2 - 40, base_center_y + active_offset_y + box_size);
-        draw_list->AddText(label_pos, IM_COL32(100, 255, 255, 150), label.c_str());
+    // Гарний підпис зони, яка обробляється
+    if (state.is_sorting && !state.is_sorted) {
+        std::string label = (state.current_algo == 3) ? "MERGING BLOCK" : "PARTITIONING RANGE";
+        ImVec2 text_sz = font->CalcTextSizeA(18.0f, FLT_MAX, 0.0f, label.c_str());
+        ImVec2 label_pos = ImVec2(canvas_pos.x + canvas_size.x / 2.0f - text_sz.x / 2.0f, base_center_y + active_offset_y + box_size);
+        draw_list->AddText(font, 18.0f, label_pos, IM_COL32(0, 255, 200, 200), label.c_str());
     }
 }
 
