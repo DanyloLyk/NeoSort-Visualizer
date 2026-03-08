@@ -77,6 +77,14 @@ struct AppState {
     int shell_i = 0;
     int shell_j = 0;
 
+    // --- Змінні для Heap Sort ---
+    bool heap_initialized = false;
+    bool heap_phase_build = true; // true = Build Heap, false = Extract
+    bool heap_in_heapify = false; // Чи ми зараз всередині процесу просіювання (heapify)?
+    int heap_i = 0;               // Лічильник зовнішнього циклу
+    int heap_current_root = 0;    // Поточний корінь для heapify
+    int heap_current_n = 0;       // Поточний розмір купи для heapify
+
     // Індекси елементів, які треба підсвітити жовтим (які зараз порівнюються)
     int highlight_1 = -1;
     int highlight_2 = -1;

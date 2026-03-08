@@ -26,6 +26,7 @@ void VisualChoice(int choice, AppState& state) {
 }
 
 void GenerateColumns(AppState& state) {
+    // ... (код GenerateColumns без змін) ...
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImVec2 canvas_pos = ImGui::GetCursorScreenPos(); 
     ImVec2 canvas_size = ImGui::GetContentRegionAvail(); 
@@ -72,9 +73,6 @@ void GenerateColumns(AppState& state) {
         ImU32 fill_col, border_col;
         float border_thickness = state.enable_elements ? 1.5f : 0.0f;
         
-        // ==========================================
-        // РЕЖИМ 1: СВІТЛОВИЙ СПЕКТР
-        // ==========================================
         if (state.current_vis == 1) { 
             float normalized_val = (val - real_min) / real_range; 
             float h = 0.66f - (normalized_val * 0.66f); 
@@ -88,23 +86,16 @@ void GenerateColumns(AppState& state) {
                 fill_col = ImGui::GetColorU32(ImVec4(r, g, b, 1.0f)); 
             }
 
-            // Активні елементи (білі під час сортування)
             if (state.is_sorting && (j == state.highlight_1 || j == state.highlight_2)) {
                 fill_col = IM_COL32(255, 255, 255, 255); 
                 border_col = IM_COL32(255, 255, 255, 255); 
             }
 
-            // ФІНІШ ДЛЯ СПЕКТРА: просто білий спалах, який біжить по масиву
             if (state.is_animating_finish && (int)j == state.finish_anim_index) {
                 fill_col = IM_COL32(255, 255, 255, 255); 
                 border_col = IM_COL32(255, 255, 255, 255);
             }
-            // Зверни увагу: тут немає `else if (state.is_sorted)`, 
-            // бо після фінішу спектр має просто залишатись веселкою!
         } 
-        // ==========================================
-        // РЕЖИМ 2: ЗВИЧАЙНІ СТОВПЧИКИ
-        // ==========================================
         else { 
             if (state.enable_elements) {
                 fill_col = IM_COL32(0, 200, 255, 40); 
@@ -113,7 +104,6 @@ void GenerateColumns(AppState& state) {
                 fill_col = IM_COL32(100, 200, 255, 255); 
             }
 
-            // Активні елементи
             if (state.is_sorting && (j == state.highlight_1 || j == state.highlight_2)) {
                 if (state.enable_elements) {
                     fill_col = IM_COL32(255, 0, 150, 100); 
@@ -123,7 +113,6 @@ void GenerateColumns(AppState& state) {
                 }
             }
 
-            // ФІНІШ ДЛЯ СТОВПЧИКІВ: заливаємо зеленим назавжди
             if (state.is_animating_finish && (int)j <= state.finish_anim_index) {
                 fill_col = state.enable_elements ? IM_COL32(0, 255, 100, 80) : IM_COL32(50, 255, 50, 255);
                 border_col = IM_COL32(0, 255, 100, 255);
@@ -133,7 +122,6 @@ void GenerateColumns(AppState& state) {
             }
         }
 
-        // --- МАЛЮЄМО ---
         draw_list->AddRectFilled(p_min, p_max, fill_col);
         if (state.enable_elements && state.current_vis != 1) { 
             draw_list->AddRect(p_min, p_max, border_col, 0.0f, 0, border_thickness);
@@ -142,6 +130,7 @@ void GenerateColumns(AppState& state) {
 }
 
 void GenerateOrbits(AppState& state) {
+    // ... (код GenerateOrbits без змін) ...
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
     ImVec2 canvas_size = ImGui::GetContentRegionAvail();
@@ -166,7 +155,6 @@ void GenerateOrbits(AppState& state) {
     float zero_r = base_r + (std::abs(real_min) / range) * (max_r - base_r);
 
     float angle_step = (2.0f * M_PI) / state.arr.size(); 
-    // Робимо лінії трошки тоншими, щоб була чіткість
     float line_thickness = std::max(1.5f, (2.0f * (float)M_PI * max_r / state.arr.size()) * 0.6f);
 
     std::vector<ImVec2> tips;
@@ -179,13 +167,11 @@ void GenerateOrbits(AppState& state) {
         ImVec2 p_zero = ImVec2(center.x + zero_r * cos(angle), center.y + zero_r * sin(angle));
         ImVec2 p_val  = ImVec2(center.x + r * cos(angle), center.y + r * sin(angle));
 
-        // Зберігаємо кінчик
         tips.push_back(p_val);
 
-        // Чисті кольори з невеликою прозорістю (150 альфа), щоб контур виділявся
         ImU32 col = IM_COL32(100, 200, 255, 150); 
         if (state.is_sorting && (j == state.highlight_1 || j == state.highlight_2)) {
-            col = IM_COL32(255, 255, 0, 255); // Жовтий - непрозорий, щоб кидався в очі
+            col = IM_COL32(255, 255, 0, 255); 
         }
         if (state.is_animating_finish && (int)j <= state.finish_anim_index) {
             col = IM_COL32(50, 255, 50, 150);
@@ -193,22 +179,18 @@ void GenerateOrbits(AppState& state) {
             col = IM_COL32(50, 255, 50, 150); 
         }
 
-        // Малюємо промінь
         draw_list->AddLine(p_zero, p_val, col, line_thickness);
     }
 
-    // --- МАЛЮЄМО СУЦІЛЬНИЙ КОНТУР ---
-    // 0 замість ImDrawFlags_Closed - це те, що фіксить з'єднання початку з кінцем!
-    // IM_COL32(255, 50, 200, 255) - Неоновий рожевий/Маджента
     draw_list->AddPolyline(tips.data(), tips.size(), IM_COL32(255, 50, 200, 255), 0, 2.5f);
 
-    // Вісь нуля
     if (real_min < 0 && real_max > 0) {
         draw_list->AddCircle(center, zero_r, IM_COL32(255, 255, 255, 100), 64, 1.5f);
     }
 }
 
 std::string FormatNum(int val, int sys) {
+    // ... (код FormatNum без змін) ...
     std::stringstream ss;
     if (sys == 0) { ss << val; } 
     else if (sys == 1) { 
@@ -229,111 +211,268 @@ std::string FormatNum(int val, int sys) {
     return ss.str();
 }
 
-void GenerateNumbers(AppState& state) {
+// =========================================================
+// НОВІ ФУНКЦІЇ ВІЗУАЛІЗАЦІЇ
+// =========================================================
+
+// Допоміжна функція для малювання одного блоку (квадрата з числом)
+void DrawNumberBox(ImDrawList* draw_list, ImVec2 center, float size, int val, int index, AppState& state, ImFont* font) {
+    std::string text = FormatNum(val, state.current_sys);
+    float font_size = size * 0.45f;
+    if (font_size < 12.0f) font_size = 12.0f;
+
+    ImU32 box_col = IM_COL32(40, 60, 100, 255);
+    ImU32 border_col = IM_COL32(100, 200, 255, 255);
+    ImU32 text_col = IM_COL32(255, 255, 255, 255);
+
+    // Логіка кольорів
+    if (state.is_sorting && (index == state.highlight_1 || index == state.highlight_2)) {
+        box_col = IM_COL32(255, 215, 0, 255);
+        border_col = IM_COL32(255, 255, 255, 255);
+        text_col = IM_COL32(0, 0, 0, 255);
+        size *= 1.2f; // Активний елемент трохи більший
+        font_size *= 1.2f;
+    } else if (state.is_animating_finish && index <= state.finish_anim_index) {
+        box_col = IM_COL32(50, 200, 50, 255);
+        border_col = IM_COL32(100, 255, 100, 255);
+    } else if (state.is_sorted && !state.is_animating_finish) {
+        box_col = IM_COL32(50, 200, 50, 255);
+        border_col = IM_COL32(100, 255, 100, 255);
+    } 
+    // --- FIX: Зелений колір для відсортованої частини Heap Sort ---
+    else if (state.current_algo == 7 && !state.heap_phase_build && index > state.heap_i) {
+        box_col = IM_COL32(50, 200, 50, 255);
+        border_col = IM_COL32(100, 255, 100, 255);
+    }
+
+    ImVec2 p_min = ImVec2(center.x - size / 2.0f, center.y - size / 2.0f);
+    ImVec2 p_max = ImVec2(center.x + size / 2.0f, center.y + size / 2.0f);
+
+    draw_list->AddRectFilled(p_min, p_max, box_col, 8.0f);
+    draw_list->AddRect(p_min, p_max, border_col, 8.0f, 0, 2.0f);
+
+    ImVec2 text_size = font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, text.c_str());
+    ImVec2 text_pos = ImVec2(center.x - text_size.x / 2.0f, center.y - text_size.y / 2.0f);
+    draw_list->AddText(font, font_size, text_pos, text_col, text.c_str());
+}
+
+// 1. ЛІНІЙНИЙ ВИГЛЯД (Класичний)
+void GenerateLinearNumbers(AppState& state, float t, float t_jump) {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
     ImVec2 canvas_size = ImGui::GetContentRegionAvail();
-    
-    float step_x = canvas_size.x / state.arr.size(); // Відстань між центрами блоків
-    float base_center_y = canvas_pos.y + canvas_size.y / 2.0f; // Центр екрану по Y
-    
     ImFont* font = ImGui::GetFont();
+
+    float step_x = canvas_size.x / state.arr.size();
+    float base_center_y = canvas_pos.y + canvas_size.y / 2.0f;
+    float box_size = std::min(step_x * 0.8f, 80.0f);
+
+    for (size_t j = 0; j < state.arr.size(); j++) {
+        float target_cx = canvas_pos.x + j * step_x + (step_x / 2.0f);
+        float target_cy = base_center_y;
+
+        // Анімація стрибка (Swap)
+        if (state.is_sorting && state.is_swapping) {
+            float arc_height = canvas_size.y * 0.12f;
+            if (j == state.highlight_1) {
+                float start_cx = canvas_pos.x + state.highlight_2 * step_x + (step_x / 2.0f);
+                target_cx = start_cx + (target_cx - start_cx) * t_jump;
+                target_cy -= sin(t_jump * M_PI) * arc_height;
+            } else if (j == state.highlight_2) {
+                float start_cx = canvas_pos.x + state.highlight_1 * step_x + (step_x / 2.0f);
+                target_cx = start_cx + (target_cx - start_cx) * t_jump;
+                target_cy += sin(t_jump * M_PI) * arc_height;
+            }
+        }
+
+        DrawNumberBox(draw_list, ImVec2(target_cx, target_cy), box_size, state.arr[j], j, state, font);
+    }
+}
+
+// 2. ДЕРЕВОПОДІБНИЙ ВИГЛЯД (Для Heap Sort)
+void GenerateTreeNumbers(AppState& state, float t, float t_jump) {
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
+    ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+    ImFont* font = ImGui::GetFont();
+
+    int n = state.arr.size();
+    if (n == 0) return;
+
+    // Розрахунок глибини дерева
+    int max_depth = (int)floor(log2(n));
+    if (max_depth < 3) max_depth = 3; // Щоб не було надто розтягнуто при малих N
+
+    float level_height = canvas_size.y / (max_depth + 2); // +2 для відступів зверху/знизу
+    float box_size = std::min(level_height * 0.7f, 60.0f);
+
+    // Лямбда для розрахунку позиції вузла
+    auto GetNodePos = [&](int idx) -> ImVec2 {
+        int level = (int)floor(log2(idx + 1));
+        int nodes_in_level = 1 << level; // 2^level
+        int idx_in_level = idx - (nodes_in_level - 1);
+        
+        // Ширина сектора для одного вузла на цьому рівні
+        float slice_width = canvas_size.x / nodes_in_level;
+        
+        float x = canvas_pos.x + slice_width * idx_in_level + slice_width / 2.0f;
+        float y = canvas_pos.y + level_height * (level + 1); // +1 щоб відступити від верху
+        return ImVec2(x, y);
+    };
+
+    // КРОК 1: Малюємо лінії зв'язків (спочатку, щоб були під блоками)
+    for (int i = 1; i < n; i++) {
+        int parent = (i - 1) / 2;
+        ImVec2 p1 = GetNodePos(parent);
+        ImVec2 p2 = GetNodePos(i);
+        
+        // Неонові лінії
+        draw_list->AddLine(p1, p2, IM_COL32(0, 200, 255, 100), 2.0f);
+    }
+
+    // КРОК 2: Малюємо вузли
+    for (int j = 0; j < n; j++) {
+        ImVec2 pos = GetNodePos(j);
+
+        // Анімація обміну в дереві
+        if (state.is_sorting && state.is_swapping) {
+            if (j == state.highlight_1) {
+                // FIX: Елемент j зараз на highlight_1, але прийшов з highlight_2
+                ImVec2 origin = GetNodePos(state.highlight_2);
+                ImVec2 dest = GetNodePos(state.highlight_1);
+                pos.x = origin.x + (dest.x - origin.x) * t_jump;
+                pos.y = origin.y + (dest.y - origin.y) * t_jump;
+            } else if (j == state.highlight_2) {
+                // FIX: Елемент j зараз на highlight_2, але прийшов з highlight_1
+                ImVec2 origin = GetNodePos(state.highlight_1);
+                ImVec2 dest = GetNodePos(state.highlight_2);
+                pos.x = origin.x + (dest.x - origin.x) * t_jump;
+                pos.y = origin.y + (dest.y - origin.y) * t_jump;
+            }
+        }
+
+        DrawNumberBox(draw_list, pos, box_size, state.arr[j], j, state, font);
+    }
+}
+
+// 3. РОЗДІЛЕНИЙ ВИГЛЯД (Для Merge Sort та Quick Sort)
+void GeneratePartitionNumbers(AppState& state, float t, float t_jump) {
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
+    ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+    ImFont* font = ImGui::GetFont();
+
+    float step_x = canvas_size.x / state.arr.size();
+    float base_center_y = canvas_pos.y + canvas_size.y / 2.0f - 40.0f; // Трохи вище центру
+    float box_size = std::min(step_x * 0.8f, 80.0f);
     
+    // Параметри зміщення
+    float active_offset_y = 80.0f; // Наскільки опускати активні блоки
+    float split_gap_x = 10.0f;     // Розрив між лівою і правою частиною (для Merge)
+
+    // Лямбда для розрахунку базової позиції X (щоб використовувати для start_cx і target_cx)
+    auto GetX = [&](int idx) -> float {
+        float x = canvas_pos.x + idx * step_x + (step_x / 2.0f);
+        if (state.current_algo == 3) { // Merge Sort Gap Logic
+            int left = state.merge_left_start;
+            int size = state.merge_curr_size;
+            int mid = left + size;
+            int right_end = std::min((int)state.arr.size(), left + 2 * size);
+            
+            if (idx >= left && idx < right_end) {
+                if (idx >= mid) x += split_gap_x;
+                else x -= split_gap_x;
+            }
+        }
+        return x;
+    };
+
+    for (size_t j = 0; j < state.arr.size(); j++) {
+        float target_cx = GetX(j);
+        float target_cy = base_center_y;
+
+        bool is_active = false;
+
+        // --- ЛОГІКА ДЛЯ MERGE SORT ---
+        if (state.current_algo == 3) { // Merge Sort
+            int left = state.merge_left_start;
+            int size = state.merge_curr_size;
+            int right_end = std::min((int)state.arr.size(), left + 2 * size);
+
+            // Якщо елемент входить в поточну групу злиття
+            if (j >= left && j < right_end) {
+                is_active = true;
+                target_cy += active_offset_y; // Опускаємо вниз
+            }
+        }
+        // --- ЛОГІКА ДЛЯ QUICK SORT ---
+        else if (state.current_algo == 4) { // Quick Sort
+            // Якщо елемент входить в поточний діапазон Partition
+            if (j >= state.qs_low && j <= state.qs_high) {
+                is_active = true;
+                target_cy += active_offset_y; // Опускаємо вниз
+            }
+        }
+
+        // Анімація (якщо є)
+        // Для Merge Sort зазвичай немає swap-стрибків, але для Quick Sort є
+        if (state.is_sorting && state.is_swapping && is_active) {
+             float arc_height = canvas_size.y * 0.12f;
+             if (j == state.highlight_1) {
+                 // FIX: Додана інтерполяція по X
+                 float start_cx = GetX(state.highlight_2);
+                 target_cx = start_cx + (target_cx - start_cx) * t_jump;
+                 target_cy -= sin(t_jump * M_PI) * arc_height;
+             } else if (j == state.highlight_2) {
+                 // FIX: Додана інтерполяція по X
+                 float start_cx = GetX(state.highlight_1);
+                 target_cx = start_cx + (target_cx - start_cx) * t_jump;
+                 target_cy += sin(t_jump * M_PI) * arc_height;
+             }
+        }
+
+        DrawNumberBox(draw_list, ImVec2(target_cx, target_cy), box_size, state.arr[j], j, state, font);
+    }
+    
+    // Додатковий підпис для активної зони
+    if (state.is_sorting) {
+        std::string label = (state.current_algo == 3) ? "MERGING" : "PARTITIONING";
+        ImVec2 label_pos = ImVec2(canvas_pos.x + canvas_size.x/2 - 40, base_center_y + active_offset_y + box_size);
+        draw_list->AddText(label_pos, IM_COL32(100, 255, 255, 150), label.c_str());
+    }
+}
+
+// ГОЛОВНА ФУНКЦІЯ-ДИСПЕТЧЕР
+void GenerateNumbers(AppState& state) {
     // Рахуємо загальний таймер кроку (від 0.0 до 1.0)
     double current_time = ImGui::GetTime();
     double delay = 0.05 / state.speed;
     float t = (float)((current_time - state.last_step_time) / delay);
     if (t > 1.0f || !state.is_sorting) t = 1.0f;
 
-    // --- МАГІЯ ПАУЗ (KEYFRAMING) ---
-    // t_jump - це "реальний" прогрес самого стрибка
+    // Розрахунок фази стрибка (t_jump)
     float t_jump = 0.0f;
-    if (t < 0.2f) {
-        // Фаза 1: "Думають" перед стрибком (20% часу)
-        t_jump = 0.0f; 
-    } else if (t > 0.8f) {
-        // Фаза 3: Приземлилися і чекають наступного кроку (20% часу)
-        t_jump = 1.0f; 
-    } else {
-        // Фаза 2: Сам стрибок (розтягуємо залишок часу на 100% стрибка)
-        t_jump = (t - 0.2f) / 0.6f; 
+    if (t < 0.2f) t_jump = 0.0f; 
+    else if (t > 0.8f) t_jump = 1.0f; 
+    else t_jump = (t - 0.2f) / 0.6f; 
+
+    // Вибір режиму візуалізації залежно від алгоритму
+    // 3 = Merge Sort, 4 = Quick Sort
+    if (state.current_algo == 3 || state.current_algo == 4) {
+        GeneratePartitionNumbers(state, t, t_jump);
     }
-    // --------------------------------
-    // --- РОЗМІР КВАДРАТІВ ---
-    // Квадрат буде займати 80% від доступного кроку, але не більше 80 пікселів, щоб не бути гігантом
-    float box_size = std::min(step_x * 0.8f, 80.0f); 
-    float font_size = box_size * 0.45f; // Текст займає майже половину квадрата
-    if (font_size < 12.0f) font_size = 12.0f;
-
-    for (size_t j = 0; j < state.arr.size(); j++) {
-        int val = state.arr[j];
-        std::string text = FormatNum(val, state.current_sys); 
-        
-        // Знаходимо цільовий центр для цього квадрата
-        float target_cx = canvas_pos.x + j * step_x + (step_x / 2.0f);
-        float target_cy = base_center_y;
-
-        // Кольори за замовчуванням (темно-сині блоки)
-        ImU32 box_col = IM_COL32(40, 60, 100, 255);       // Фон квадрата
-        ImU32 border_col = IM_COL32(100, 200, 255, 255);  // Рамка
-        ImU32 text_col = IM_COL32(255, 255, 255, 255);    // Білий текст
-        
-        float current_box_size = box_size;
-        float current_font_size = font_size;
-
-        // --- ЛОГІКА ПІДСВІТКИ ТА АНІМАЦІЇ ---
-        if (state.is_sorting && (j == state.highlight_1 || j == state.highlight_2)) {
-            box_col = IM_COL32(255, 215, 0, 255);     // Золотий/Жовтий фон
-            border_col = IM_COL32(255, 255, 255, 255); // Біла рамка
-            text_col = IM_COL32(0, 0, 0, 255);        // ЧОРНИЙ текст для контрасту
-
-            current_box_size *= 1.2f; // Квадрат трохи "надувається"
-            current_font_size *= 1.2f;
-
-            // АНІМАЦІЯ СТРИБКА
-            if (state.is_swapping) {
-                float arc_height = canvas_size.y * 0.12f; 
-                float start_cx;
-                
-                if (j == state.highlight_1) {
-                    start_cx = canvas_pos.x + state.highlight_2 * step_x + (step_x / 2.0f);
-                    
-                    // ВИКОРИСТОВУЄМО t_jump ЗАМІСТЬ t !
-                    target_cx = start_cx + (target_cx - start_cx) * t_jump;
-                    target_cy -= sin(t_jump * M_PI) * arc_height; 
-                } else if (j == state.highlight_2) {
-                    start_cx = canvas_pos.x + state.highlight_1 * step_x + (step_x / 2.0f);
-                    
-                    // ВИКОРИСТОВУЄМО t_jump ЗАМІСТЬ t !
-                    target_cx = start_cx + (target_cx - start_cx) * t_jump;
-                    target_cy += sin(t_jump * M_PI) * arc_height; 
-                }
-            }
-        } else if (state.is_animating_finish && (int)j <= state.finish_anim_index) {
-            box_col = IM_COL32(50, 200, 50, 255);     // Зелений фініш
-            border_col = IM_COL32(100, 255, 100, 255);
-        } else if (state.is_sorted && !state.is_animating_finish) {
-            box_col = IM_COL32(50, 200, 50, 255);
-            border_col = IM_COL32(100, 255, 100, 255);
-        }
-
-        // --- МАЛЮЄМО КВАДРАТ ---
-        // Координати лівого верхнього і правого нижнього кутів квадрата відносно його центру
-        ImVec2 p_min = ImVec2(target_cx - current_box_size / 2.0f, target_cy - current_box_size / 2.0f);
-        ImVec2 p_max = ImVec2(target_cx + current_box_size / 2.0f, target_cy + current_box_size / 2.0f);
-        
-        // Заокруглені кути (8.0f) роблять блоки сучасними, як у мобільних додатках
-        draw_list->AddRectFilled(p_min, p_max, box_col, 8.0f);
-        draw_list->AddRect(p_min, p_max, border_col, 8.0f, 0, 2.0f); // Рамочка
-
-        // --- МАЛЮЄМО ТЕКСТ ПО ЦЕНТРУ КВАДРАТА ---
-        ImVec2 text_size = font->CalcTextSizeA(current_font_size, FLT_MAX, 0.0f, text.c_str());
-        ImVec2 text_pos = ImVec2(target_cx - text_size.x / 2.0f, target_cy - text_size.y / 2.0f);
-        draw_list->AddText(font, current_font_size, text_pos, text_col, text.c_str());
+    // 7 = Heap Sort (Припустимо, що ти додаси його під цим індексом)
+    else if (state.current_algo == 7) {
+        GenerateTreeNumbers(state, t, t_jump);
+    }
+    // Всі інші (Bubble, Selection, Insertion, Shell, Shaker)
+    else {
+        GenerateLinearNumbers(state, t, t_jump);
     }
 }
 
 void RenderCodePanel(AppState& state) {
+// ... (RenderCodePanel залишається без змін) ...
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImVec2 p = ImGui::GetCursorScreenPos();
     
@@ -598,6 +737,38 @@ void RenderCodePanel(AppState& state) {
             ImGui::TextColored(col_normal, "        }");
 
             ImGui::TextColored(col_normal, "        start++;");
+            ImGui::TextColored(col_normal, "    }");
+            ImGui::TextColored(col_normal, "}");
+            break;
+
+        case 7: // Heap Sort
+            ImGui::Text(" Файл: heap_sort.cpp");
+            ImGui::Separator(); ImGui::Spacing();
+
+            ImGui::TextColored(col_keyword, "void "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "heapify("); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "n, "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "i) {");
+
+            ImGui::TextColored(col_type, "    int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "largest = i;");
+            ImGui::TextColored(col_type, "    int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "l = 2 * i + 1;");
+            ImGui::TextColored(col_type, "    int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "r = 2 * i + 2;");
+
+            ImGui::TextColored(col_keyword, "    if "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "(l < n && arr[l] > arr[largest]) largest = l;");
+            ImGui::TextColored(col_keyword, "    if "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "(r < n && arr[r] > arr[largest]) largest = r;");
+
+            ImGui::TextColored(col_keyword, "    if "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "(largest != i) {");
+            ImGui::TextColored(col_active, "        swap(arr[i], arr[largest]); "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_green, "// SIFT DOWN");
+            ImGui::TextColored(col_normal, "        heapify(arr, n, largest);");
             ImGui::TextColored(col_normal, "    }");
             ImGui::TextColored(col_normal, "}");
             break;

@@ -10,5 +10,6 @@ void MergeSort(AppState& state);
 void QuickSort(AppState& state);
 void ShellSort(AppState& state);
 void CocktailShakerSort(AppState& state);
+void HeapSort(AppState& state);
 void EndSort(AppState& state);
 void ClearStates(AppState& state);

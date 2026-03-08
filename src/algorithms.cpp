@@ -559,6 +559,98 @@ void CocktailShakerSort(AppState& state) {
     }
 }
 
+void HeapSort(AppState& state) {
+    if (!state.is_sorting || state.arr.size() < 2) return;
+
+    int n = (int)state.arr.size();
+
+    // 1. Ініціалізація
+    if (!state.heap_initialized) {
+        state.heap_i = n / 2 - 1;
+        state.heap_phase_build = true;
+        state.heap_in_heapify = false;
+        state.heap_initialized = true;
+    }
+
+    // 2. Виконання кроку Heapify (просіювання вниз)
+    // Це "внутрішній цикл", який може тривати кілька кадрів
+    if (state.heap_in_heapify) {
+        int i = state.heap_current_root;
+        int size = state.heap_current_n;
+        int largest = i;
+        int l = 2 * i + 1;
+        int r = 2 * i + 2;
+
+        state.highlight_1 = i;
+        state.highlight_2 = -1;
+        state.is_swapping = false;
+
+        // Визначаємо найбільший (або найменший для спадання) елемент
+        if (l < size) {
+            bool condition = state.sort_descending ? (state.arr[l] < state.arr[largest]) : (state.arr[l] > state.arr[largest]);
+            if (condition) largest = l;
+        }
+        if (r < size) {
+            bool condition = state.sort_descending ? (state.arr[r] < state.arr[largest]) : (state.arr[r] > state.arr[largest]);
+            if (condition) largest = r;
+        }
+
+        if (largest != i) {
+            // Обмін і продовження просіювання
+            // FIX: Робимо swap тільки якщо індекси різні (хоча largest != i це гарантує, але для надійності)
+            if (state.arr[i] != state.arr[largest] || i != largest) {
+                state.highlight_2 = largest;
+                state.is_swapping = true;
+                std::swap(state.arr[i], state.arr[largest]);
+            }
+            state.heap_current_root = largest; // Наступний крок heapify буде звідси
+            return; // Повертаємось, щоб показати своп
+        } else {
+            // Heapify завершено для цього вузла
+            state.heap_in_heapify = false;
+        }
+    }
+
+    // 3. Вибір наступного завдання (якщо heapify не активний)
+    if (!state.heap_in_heapify) {
+        // ФАЗА 1: Побудова купи (Build Heap)
+        if (state.heap_phase_build) {
+            if (state.heap_i >= 0) {
+                state.heap_current_root = state.heap_i;
+                state.heap_current_n = n;
+                state.heap_in_heapify = true;
+                state.heap_i--;
+                return;
+            } else {
+                state.heap_phase_build = false;
+                state.heap_i = n - 1;
+                if (state.detailed_logs) state.log_history.push_back("[Heap] Купа побудована. Починаємо сортування.");
+            }
+        }
+
+        // ФАЗА 2: Екстракція (Extract Max)
+        if (!state.heap_phase_build) {
+            if (state.heap_i > 0) {
+                // FIX: Перевірка на всяк випадок, хоча heap_i > 0 гарантує різницю
+                if (state.heap_i != 0) {
+                    std::swap(state.arr[0], state.arr[state.heap_i]);
+                    state.highlight_1 = 0;
+                    state.highlight_2 = state.heap_i;
+                    state.is_swapping = true;
+                }
+
+                state.heap_current_root = 0;
+                state.heap_current_n = state.heap_i;
+                state.heap_in_heapify = true;
+                state.heap_i--;
+                return;
+            } else {
+                EndSort(state);
+            }
+        }
+    }
+}
+
 void EndSort(AppState& state) {
     // СОРТУВАННЯ ЗАВЕРШЕНО!
     state.is_sorting = false;
@@ -615,4 +707,11 @@ void ClearStates(AppState& state) {
     state.shaker_i = 0;
     state.shaker_dir = 1;
     state.shaker_swapped = false;
+
+    state.heap_initialized = false;
+    state.heap_phase_build = true;
+    state.heap_in_heapify = false;
+    state.heap_i = 0;
+    state.heap_current_root = 0;
+    state.heap_current_n = 0;
 }

@@ -108,6 +108,8 @@ void RenderUI(AppState& state) {
             ShellSort(state);
         } else if (state.current_algo == 6) {
             CocktailShakerSort(state);
+        } else if (state.current_algo == 7) {
+            HeapSort(state);
         } 
         
         state.last_step_time = current_time; 
@@ -173,7 +175,8 @@ void RenderUI(AppState& state) {
             "Merge Sort (Лаба 4)", 
             "Quick Sort (Лаба 5)", 
             "Shell Sort (Лаба 6)", 
-            "Cocktail Shaker (Лаба 7)" 
+            "Cocktail Shaker (Лаба 7)",
+            "Heap Sort (Лаба 8)"
         };
         ImGui::Text("Алгоритм:");
         if(ImGui::Combo("##algo", &state.current_algo, algos, IM_ARRAYSIZE(algos))) { 
@@ -203,8 +206,8 @@ void RenderUI(AppState& state) {
         ImGui::Separator();
         ImGui::Spacing();
         
-        ImGui::Text("Кібер-Налаштування:");
-        ImGui::Checkbox("Хакерський фон", &state.enable_cyber_bg);
+        ImGui::Text("Демо-Налаштування:");
+        ImGui::Checkbox("Прикольний фон", &state.enable_cyber_bg);
         ImGui::Checkbox("Неонові елементи", &state.enable_elements);
 
         const char* visuals[] = { "Орбіти", "Світловий спектр", "Стовпчики", "Звичайні числа" };
