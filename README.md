@@ -112,11 +112,11 @@ graph TD
 
 ```bash
 # For Arch Linux:
-sudo pacman -S base-devel glfw-x11 fonts-noto-core
+sudo pacman -S base-devel cmake glfw-x11 fonts-noto-core
 
 # For Ubuntu/Debian:
 sudo apt update
-sudo apt install build-essential libglfw3-dev libgl1-mesa-dev libglew-dev fonts-noto-core
+sudo apt install build-essential cmake libglfw3-dev libgl1-mesa-dev libglew-dev fonts-noto-core
 ```
 
 **2. Клонування та збірка:**
@@ -139,15 +139,43 @@ make
 
 ### 🪟 Windows (MinGW)
 
-Якщо ви працюєте на Windows, найзручніше використовувати MSYS2/MinGW.
+Для збірки на Windows рекомендується використовувати середовище MSYS2, яке надає доступ до інструментів GNU, включаючи MinGW-w64, `cmake` та `make`.
 
-**1. Збірка:**
-Переконайтеся, що `mingw32-make` та `g++` додані до вашого PATH.
+**1. Встановлення MSYS2 та залежностей:**
 
-```cmd
-git clone https://github.com/TVIY_NICK/NeoSort.git
-cd NeoSort
-mingw32-make
+1.  Завантажте та встановіть [MSYS2](https://www.msys2.org/).
+2.  Відкрийте термінал **MSYS2 MinGW 64-bit**.
+3.  Оновіть пакети:
+    ```bash
+    pacman -Syu
+    pacman -Su
+    ```
+4.  Встановіть необхідні інструменти для збірки та бібліотеки:
+    ```bash
+    pacman -S --needed base-devel mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-glfw
+    ```
+
+**2. Клонування та збірка:**
+
+1.  Клонуйте репозиторій та його підмодулі:
+    ```bash
+    git clone https://github.com/DanyloLyk/NeoSort-Visualizer.git
+    cd NeoSort-Visualizer
+    git submodule update --init --recursive
+    ```
+2.  Створіть директорію для збірки та скомпілюйте проєкт:
+    ```bash
+    mkdir build
+    cd build
+    cmake -G "MinGW Makefiles" ..
+    mingw32-make
+    ```
+
+**3. Запуск:**
+
+Після успішної збірки, запустіть програму з директорії `build`:
+```bash
+./Algorithms.exe
 ```
 
 **2. Запуск:**
@@ -161,4 +189,3 @@ visualizer.exe
 <div align="center">
 <sub>Розроблено як крутий пет-проєкт і не тільки. 2026 </sub>
 </div>
-
