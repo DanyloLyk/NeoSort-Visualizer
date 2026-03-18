@@ -2,6 +2,7 @@
 #include "static.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "font_data.h"
 #include <GLFW/glfw3.h>
 #include <iostream>
 
@@ -29,10 +30,22 @@ int main() {
     ImFontConfig font_config;
     font_config.OversampleH = 2; // для згладжування
     font_config.OversampleV = 2;
-    
+    font_config.FontDataOwnedByAtlas = false; 
+
+    // ------------------------------
     // Беремо стандартний шрифт з твого Linux (шлях може трохи відрізнятися, 
     // але NotoSans або DejaVuSans зазвичай є у всіх)
-    io.Fonts->AddFontFromFileTTF("/usr/share/fonts/noto/NotoSans-Regular.ttf", 18.0f, &font_config, io.Fonts->GetGlyphRangesCyrillic());
+    // io.Fonts->AddFontFromFileTTF("/usr/share/fonts/noto/NotoSans-Regular.ttf", 18.0f, &font_config, io.Fonts->GetGlyphRangesCyrillic());
+    // ------------------------------
+    // Конфіг потрібен, щоб ImGui не намагався видалити цей масив з пам'яті при виході
+    // Завантажуємо шрифт ПРЯМО З ОПЕРАТИВНОЇ ПАМ'ЯТІ!
+    io.Fonts->AddFontFromMemoryTTF(
+        (void*)NotoSans_ttf,      // Назва масиву з нашого нового файлу
+        NotoSans_ttf_len,         // Розмір масиву (теж з файлу)
+        18.0f,                    // Розмір шрифту (зміни на свій, якщо треба)
+        &font_config,
+        io.Fonts->GetGlyphRangesCyrillic() // Це якщо потрібна підтримка кирилиці (укр/рос літер)
+    );
     
     ImGui::StyleColorsDark(); // Вмикаємо темну тему 
 

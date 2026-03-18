@@ -26,7 +26,6 @@ void VisualChoice(int choice, AppState& state) {
 }
 
 void GenerateColumns(AppState& state) {
-    // ... (код GenerateColumns без змін) ...
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImVec2 canvas_pos = ImGui::GetCursorScreenPos(); 
     ImVec2 canvas_size = ImGui::GetContentRegionAvail(); 
@@ -73,52 +72,50 @@ void GenerateColumns(AppState& state) {
         ImU32 fill_col, border_col;
         float border_thickness = state.enable_elements ? 1.5f : 0.0f;
         
+        // Генеруємо базовий колір (веселка або синій неон)
         if (state.current_vis == 1) { 
             float normalized_val = (val - real_min) / real_range; 
             float h = 0.66f - (normalized_val * 0.66f); 
-            float r, g, b;
-            ImGui::ColorConvertHSVtoRGB(h, 1.0f, 1.0f, r, g, b);
-            
-            if (state.enable_elements) {
-                fill_col = ImGui::GetColorU32(ImVec4(r, g, b, 0.7f)); 
-                border_col = ImGui::GetColorU32(ImVec4(r, g, b, 1.0f)); 
-            } else {
-                fill_col = ImGui::GetColorU32(ImVec4(r, g, b, 1.0f)); 
-            }
+            float r, g, b; ImGui::ColorConvertHSVtoRGB(h, 1.0f, 1.0f, r, g, b);
+            fill_col = ImGui::GetColorU32(ImVec4(r, g, b, state.enable_elements ? 0.7f : 1.0f)); 
+            border_col = ImGui::GetColorU32(ImVec4(r, g, b, 1.0f)); 
+        } else { 
+            fill_col = state.enable_elements ? IM_COL32(0, 200, 255, 40) : IM_COL32(100, 200, 255, 255); 
+            border_col = IM_COL32(0, 200, 255, 255);
+        }
 
+        // --- НАКЛАДАЄМО ЛОГІКУ ПОШУКУ АБО СОРТУВАННЯ ---
+        if (state.current_algo >= 8 && !state.is_sorting) {
+            // 1. Анімація успіху
+            if (state.is_animating_search_success && (int)j == state.search_result) {
+                fill_col = state.flash_state ? IM_COL32(255, 215, 0, 255) : IM_COL32(40, 60, 100, 255);
+                border_col = state.flash_state ? IM_COL32(255, 255, 255, 255) : IM_COL32(100, 200, 255, 255);
+                if (state.flash_count > 10) { fill_col = IM_COL32(0, 255, 0, 255); border_col = IM_COL32(100, 255, 100, 255); }
+            } 
+            // 2. Анімація провалу
+            else if (state.is_animating_search_fail) {
+                fill_col = state.flash_state ? IM_COL32(200, 0, 0, 255) : IM_COL32(40, 60, 100, 255);
+                if (state.flash_count > 10) fill_col = IM_COL32(150, 0, 0, 255);
+            } 
+            // 3. Затемнення
+            else if (state.current_algo == 9 && (j < state.search_l || j > state.search_r)) {
+                fill_col = IM_COL32(40, 60, 100, 40); 
+                border_col = IM_COL32(100, 200, 255, 40);
+            } 
+            // 4. Сканер
+            else if (state.is_searching && j == state.highlight_1) {
+                fill_col = IM_COL32(255, 140, 0, 255); 
+                border_col = IM_COL32(255, 200, 0, 255);
+            }
+        } else {
             if (state.is_sorting && (j == state.highlight_1 || j == state.highlight_2)) {
-                fill_col = IM_COL32(255, 255, 255, 255); 
-                border_col = IM_COL32(255, 255, 255, 255); 
+                if (state.current_vis == 1) { fill_col = IM_COL32(255, 255, 255, 255); border_col = IM_COL32(255, 255, 255, 255); }
+                else { fill_col = state.enable_elements ? IM_COL32(255, 0, 150, 100) : IM_COL32(255, 255, 0, 255); border_col = IM_COL32(255, 0, 150, 255); }
             }
-
-            if (state.is_animating_finish && (int)j == state.finish_anim_index) {
-                fill_col = IM_COL32(255, 255, 255, 255); 
-                border_col = IM_COL32(255, 255, 255, 255);
-            }
-        } 
-        else { 
-            if (state.enable_elements) {
-                fill_col = IM_COL32(0, 200, 255, 40); 
-                border_col = IM_COL32(0, 200, 255, 255);
-            } else {
-                fill_col = IM_COL32(100, 200, 255, 255); 
-            }
-
-            if (state.is_sorting && (j == state.highlight_1 || j == state.highlight_2)) {
-                if (state.enable_elements) {
-                    fill_col = IM_COL32(255, 0, 150, 100); 
-                    border_col = IM_COL32(255, 0, 150, 255); 
-                } else {
-                    fill_col = IM_COL32(255, 255, 0, 255); 
-                }
-            }
-
             if (state.is_animating_finish && (int)j <= state.finish_anim_index) {
-                fill_col = state.enable_elements ? IM_COL32(0, 255, 100, 80) : IM_COL32(50, 255, 50, 255);
-                border_col = IM_COL32(0, 255, 100, 255);
+                fill_col = (state.current_vis == 1) ? IM_COL32(255, 255, 255, 255) : (state.enable_elements ? IM_COL32(0, 255, 100, 80) : IM_COL32(50, 255, 50, 255));
             } else if (state.is_sorted && !state.is_animating_finish) {
-                fill_col = state.enable_elements ? IM_COL32(0, 255, 100, 80) : IM_COL32(50, 255, 50, 255);
-                border_col = IM_COL32(0, 255, 100, 255);
+                if (state.current_vis != 1) fill_col = state.enable_elements ? IM_COL32(0, 255, 100, 80) : IM_COL32(50, 255, 50, 255);
             }
         }
 
@@ -130,7 +127,6 @@ void GenerateColumns(AppState& state) {
 }
 
 void GenerateOrbits(AppState& state) {
-    // ... (код GenerateOrbits без змін) ...
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
     ImVec2 canvas_size = ImGui::GetContentRegionAvail();
@@ -155,9 +151,15 @@ void GenerateOrbits(AppState& state) {
     float zero_r = base_r + (std::abs(real_min) / range) * (max_r - base_r);
 
     float angle_step = (2.0f * M_PI) / state.arr.size(); 
-    float line_thickness = std::max(1.5f, (2.0f * (float)M_PI * max_r / state.arr.size()) * 0.6f);
+    float base_line_thickness = std::max(1.5f, (2.0f * (float)M_PI * max_r / state.arr.size()) * 0.6f);
 
     std::vector<ImVec2> tips;
+
+    // Визначаємо, який алгоритм реально зараз працює (для пресортування)
+    int active_algo = state.current_algo;
+    if (state.current_algo == 9 && state.is_sorting) {
+        active_algo = state.search_presort_algo;
+    }
 
     for (size_t j = 0; j < state.arr.size(); j++) {
         float val = state.arr[j];
@@ -170,16 +172,41 @@ void GenerateOrbits(AppState& state) {
         tips.push_back(p_val);
 
         ImU32 col = IM_COL32(100, 200, 255, 150); 
-        if (state.is_sorting && (j == state.highlight_1 || j == state.highlight_2)) {
-            col = IM_COL32(255, 255, 0, 255); 
-        }
-        if (state.is_animating_finish && (int)j <= state.finish_anim_index) {
-            col = IM_COL32(50, 255, 50, 150);
-        } else if (state.is_sorted && !state.is_animating_finish) {
-            col = IM_COL32(50, 255, 50, 150); 
+        float current_thickness = base_line_thickness;
+
+        // --- ЛОГІКА КОЛЬОРІВ ---
+        if (state.current_algo >= 8 && !state.is_sorting) {
+            // 1. НАЙВИЩИЙ ПРІОРИТЕТ: Анімація УСПІХУ
+            if (state.is_animating_search_success && (int)j == state.search_result) {
+                col = state.flash_state ? IM_COL32(255, 215, 0, 255) : IM_COL32(100, 200, 255, 150);
+                if (state.flash_count > 10) col = IM_COL32(0, 255, 0, 255);
+            } 
+            // 2. НАЙВИЩИЙ ПРІОРИТЕТ: Анімація ПРОВАЛУ
+            else if (state.is_animating_search_fail) {
+                col = state.flash_state ? IM_COL32(200, 0, 0, 255) : IM_COL32(100, 200, 255, 150);
+                if (state.flash_count > 10) col = IM_COL32(150, 0, 0, 255);
+            } 
+            // 3. Затемнення відкинутої половини (Для Бінарного пошуку)
+            else if (state.current_algo == 9 && (j < state.search_l || j > state.search_r)) {
+                col = IM_COL32(100, 200, 255, 20); // Зливаємо з фоном
+            } 
+            // 4. Сканер (Поточний елемент)
+            else if (state.is_searching && j == state.highlight_1) {
+                col = IM_COL32(255, 140, 0, 255); // Яскраво-оранжевий
+            }
+        } else {
+            // --- ЛОГІКА КОЛЬОРІВ ДЛЯ СОРТУВАННЯ (в т.ч. пресортування) ---
+            if (state.is_sorting && (j == state.highlight_1 || j == state.highlight_2)) {
+                col = IM_COL32(255, 255, 0, 255); // Жовті промені при обміні
+                current_thickness *= 1.5f;
+            } else if (state.is_animating_finish && (int)j <= state.finish_anim_index) {
+                col = IM_COL32(50, 255, 50, 150);
+            } else if (state.is_sorted && !state.is_animating_finish) {
+                col = IM_COL32(50, 255, 50, 150);
+            }
         }
 
-        draw_list->AddLine(p_zero, p_val, col, line_thickness);
+        draw_list->AddLine(p_zero, p_val, col, current_thickness);
     }
 
     draw_list->AddPolyline(tips.data(), tips.size(), IM_COL32(255, 50, 200, 255), 0, 2.5f);
@@ -224,40 +251,82 @@ void DrawNumberBox(ImDrawList* draw_list, ImVec2 center, float size, int val, in
     ImU32 border_col = IM_COL32(100, 200, 255, alpha);
     ImU32 text_col = IM_COL32(255, 255, 255, alpha);
 
-    // Логіка кольорів
-    if (is_pivot) {
-        // ОПОРНИЙ ЕЛЕМЕНТ (Pivot) для Quick Sort - Неоновий червоний/рожевий
-        box_col = IM_COL32(200, 20, 80, 255);
-        border_col = IM_COL32(255, 50, 150, 255);
-        text_col = IM_COL32(255, 255, 255, 255);
-        size *= 1.1f; 
-    } 
-    else if (state.is_sorting && (index == state.highlight_1 || index == state.highlight_2)) {
-        // Елементи, які зараз порівнюються
-        box_col = IM_COL32(255, 215, 0, 255);
-        border_col = IM_COL32(255, 255, 255, 255);
-        text_col = IM_COL32(0, 0, 0, 255);
-        size *= 1.2f; 
-        font_size *= 1.2f;
-    } 
-    else if (state.is_animating_finish && index <= state.finish_anim_index) {
-        box_col = IM_COL32(50, 200, 50, 255);
-        border_col = IM_COL32(100, 255, 100, 255);
-    } 
-    else if (state.is_sorted && !state.is_animating_finish) {
-        box_col = IM_COL32(50, 200, 50, 255);
-        border_col = IM_COL32(100, 255, 100, 255);
-    } 
-    else if (state.current_algo == 7 && !state.heap_phase_build && index > state.heap_i) {
-        box_col = IM_COL32(50, 200, 50, 255);
-        border_col = IM_COL32(100, 255, 100, 255);
-    }
-    // --- FIX: Зелений колір для відсортованої частини Heap Sort ---
-    else if (state.current_algo == 7 && !state.heap_phase_build && index > state.heap_i) {
-        box_col = IM_COL32(50, 200, 50, 255);
-        border_col = IM_COL32(100, 255, 100, 255);
+    // Визначаємо, який алгоритм реально зараз працює (для Heap Sort)
+    int active_algo = state.current_algo;
+    if (state.current_algo == 9 && state.is_sorting) {
+        active_algo = state.search_presort_algo;
     }
 
+    // Якщо це алгоритм пошуку І ми ЗАРАЗ НЕ сортуємо
+    if (state.current_algo >= 8 && !state.is_sorting) {
+        // --- ЛОГІКА КОЛЬОРІВ ДЛЯ ПОШУКУ ---
+        
+        // 1. НАЙВИЩИЙ ПРІОРИТЕТ: Анімація УСПІХУ
+        if (state.is_animating_search_success && index == state.search_result) {
+            size *= 1.3f; 
+            if (state.flash_count <= 10) {
+                box_col = state.flash_state ? IM_COL32(255, 215, 0, 255) : IM_COL32(40, 60, 100, 255); 
+                border_col = state.flash_state ? IM_COL32(255, 255, 255, 255) : IM_COL32(100, 200, 255, 255);
+            } else {
+                box_col = IM_COL32(0, 255, 0, 255); 
+                border_col = IM_COL32(100, 255, 100, 255);
+                text_col = IM_COL32(0, 0, 0, 255);  
+            }
+        }
+        // 2. НАЙВИЩИЙ ПРІОРИТЕТ: Анімація ПРОВАЛУ
+        else if (state.is_animating_search_fail) {
+            if (state.flash_count <= 10) {
+                box_col = state.flash_state ? IM_COL32(200, 0, 0, 255) : IM_COL32(40, 60, 100, 255); 
+            } else {
+                box_col = IM_COL32(150, 0, 0, 255); 
+                border_col = IM_COL32(255, 0, 0, 255);
+            }
+        }
+        // 3. Затемнення відкинутої половини (Для Бінарного пошуку)
+        else if (active_algo == 9 && (index < state.search_l || index > state.search_r)) {
+            box_col = IM_COL32(40, 60, 100, 40); 
+            border_col = IM_COL32(100, 200, 255, 40);
+            text_col = IM_COL32(255, 255, 255, 40);
+        }
+        // 4. Сканер (Поточний елемент)
+        else if (state.is_searching && index == state.highlight_1) {
+            box_col = IM_COL32(255, 140, 0, 255); 
+            border_col = IM_COL32(255, 200, 0, 255);
+            size *= 1.2f;
+        }
+    } else {
+        // --- ЛОГІКА КОЛЬОРІВ ДЛЯ СОРТУВАННЯ ---
+        if (is_pivot) {
+            box_col = IM_COL32(200, 20, 80, 255);
+            border_col = IM_COL32(255, 50, 150, 255);
+            text_col = IM_COL32(255, 255, 255, 255);
+            size *= 1.1f; 
+        } 
+        else if (state.is_sorting && (index == state.highlight_1 || index == state.highlight_2)) {
+            box_col = IM_COL32(255, 215, 0, 255);
+            border_col = IM_COL32(255, 255, 255, 255);
+            text_col = IM_COL32(0, 0, 0, 255);
+            size *= 1.2f; 
+            font_size *= 1.2f;
+        } 
+        else if (state.is_animating_finish && index <= state.finish_anim_index) {
+            box_col = IM_COL32(50, 200, 50, 255);
+            border_col = IM_COL32(100, 255, 100, 255);
+        } 
+        else if (state.is_sorted && !state.is_animating_finish) {
+            box_col = IM_COL32(50, 200, 50, 255);
+            border_col = IM_COL32(100, 255, 100, 255);
+        } 
+        // ТУТ ВИКОРИСТОВУЄМО active_algo ДЛЯ HEAP SORT!
+        else if (active_algo == 7 && !state.heap_phase_build && index > state.heap_i) {
+            box_col = IM_COL32(50, 200, 50, 255);
+            border_col = IM_COL32(100, 255, 100, 255);
+        }
+    }
+
+    // ==========================================================
+    // ФІЗИЧНЕ МАЛЮВАННЯ КУБИКІВ (Має бути ЗОВНІ if/else блоку!)
+    // ==========================================================
     ImVec2 p_min = ImVec2(center.x - size / 2.0f, center.y - size / 2.0f);
     ImVec2 p_max = ImVec2(center.x + size / 2.0f, center.y + size / 2.0f);
 
@@ -371,34 +440,40 @@ void GenerateTreeNumbers(AppState& state, float t, float t_jump) {
 }
 
 // 3. РОЗДІЛЕНИЙ ВИГЛЯД (Для Merge Sort та Quick Sort)
+// 3. РОЗДІЛЕНИЙ ВИГЛЯД (Для Merge Sort та Quick Sort)
 void GeneratePartitionNumbers(AppState& state, float t, float t_jump) {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
     ImVec2 canvas_size = ImGui::GetContentRegionAvail();
     ImFont* font = ImGui::GetFont();
 
-    // FIX: Додаємо відступи
+    // --- МАГІЯ ТУТ: Визначаємо, який алгоритм реально працює ---
+    int active_algo = state.current_algo;
+    if (state.current_algo == 9 && state.is_sorting) {
+        active_algo = state.search_presort_algo;
+    }
+
     float padding_x = 20.0f;
     float step_x = (canvas_size.x - 2 * padding_x) / state.arr.size();
     float base_center_y = canvas_pos.y + canvas_size.y / 2.0f - 40.0f; 
     float box_size = std::min(step_x * 0.8f, 80.0f);
     
-    float active_offset_y = 100.0f; // Сильніше опускаємо активні блоки для контрасту
-    float split_gap_x = std::min(20.0f, step_x * 0.5f); // Розрив для Merge Sort
+    float active_offset_y = 100.0f; 
+    float split_gap_x = std::min(20.0f, step_x * 0.5f); 
 
-    // Лямбда для X-координати (з урахуванням розривів)
+    // Лямбда для X-координати
     auto GetX = [&](int idx) -> float {
         float x = canvas_pos.x + padding_x + idx * step_x + (step_x / 2.0f);
-        if (state.current_algo == 3 && state.merge_curr_size < state.arr.size()) { 
+        // Замінили state.current_algo на active_algo
+        if (active_algo == 3 && state.merge_curr_size < state.arr.size()) { 
             int left = state.merge_left_start;
             int size = state.merge_curr_size;
             int mid = left + size;
             int right_end = std::min((int)state.arr.size(), left + 2 * size);
             
-            // Якщо ми всередині зони злиття, розсуваємо ліву і праву половини
             if (idx >= left && idx < right_end) {
-                if (idx >= mid) x += split_gap_x; // Праву половину вправо
-                else x -= split_gap_x;            // Ліву вліво
+                if (idx >= mid) x += split_gap_x; 
+                else x -= split_gap_x;            
             }
         }
         return x;
@@ -412,34 +487,34 @@ void GeneratePartitionNumbers(AppState& state, float t, float t_jump) {
         bool is_pivot = false;
 
         // --- ЛОГІКА ДЛЯ MERGE SORT ---
-        if (state.current_algo == 3) {
+        // Замінили state.current_algo на active_algo
+        if (active_algo == 3) {
             int left = state.merge_left_start;
             int size = state.merge_curr_size;
             int right_end = std::min((int)state.arr.size(), left + 2 * size);
 
             if (state.merge_curr_size >= state.arr.size() || state.is_sorted) {
-                is_active = true; // Коли все відсортовано, все активне
+                is_active = true; 
             } else if (j >= left && j < right_end) {
                 is_active = true;
                 target_cy += active_offset_y; 
             }
         }
         // --- ЛОГІКА ДЛЯ QUICK SORT ---
-        else if (state.current_algo == 4) {
+        // Замінили state.current_algo на active_algo
+        else if (active_algo == 4) {
             if (state.is_sorted) {
                 is_active = true;
             } else if (j >= state.qs_low && j <= state.qs_high) {
                 is_active = true;
                 target_cy += active_offset_y; 
                 
-                // Вказуємо опорний елемент
                 if (state.qs_is_partitioning && j == state.qs_high) {
-                    is_pivot = true;
+                    is_pivot = true; // Тепер півот знайдеться!
                 }
             }
         }
 
-        // Анімація стрибків (переважно для Quick Sort)
         if (state.is_sorting && state.is_swapping && is_active) {
              float arc_height = canvas_size.y * 0.15f;
              if (j == state.highlight_1) {
@@ -453,13 +528,12 @@ void GeneratePartitionNumbers(AppState& state, float t, float t_jump) {
              }
         }
 
-        // Малюємо кубик (передаємо is_active та is_pivot)
         DrawNumberBox(draw_list, ImVec2(target_cx, target_cy), box_size, state.arr[j], j, state, font, is_active, is_pivot);
     }
     
-    // Гарний підпис зони, яка обробляється
     if (state.is_sorting && !state.is_sorted) {
-        std::string label = (state.current_algo == 3) ? "MERGING BLOCK" : "PARTITIONING RANGE";
+        // Замінили state.current_algo на active_algo
+        std::string label = (active_algo == 3) ? "MERGING BLOCK" : "PARTITIONING RANGE";
         ImVec2 text_sz = font->CalcTextSizeA(18.0f, FLT_MAX, 0.0f, label.c_str());
         ImVec2 label_pos = ImVec2(canvas_pos.x + canvas_size.x / 2.0f - text_sz.x / 2.0f, base_center_y + active_offset_y + box_size);
         draw_list->AddText(font, 18.0f, label_pos, IM_COL32(0, 255, 200, 200), label.c_str());
@@ -480,23 +554,69 @@ void GenerateNumbers(AppState& state) {
     else if (t > 0.8f) t_jump = 1.0f; 
     else t_jump = (t - 0.2f) / 0.6f; 
 
-    // Вибір режиму візуалізації залежно від алгоритму
-    // 3 = Merge Sort, 4 = Quick Sort
-    if (state.current_algo == 3 || state.current_algo == 4) {
+    // Визначаємо, ЯКУ ВІЗУАЛІЗАЦІЮ показувати зараз
+    int active_algo = state.current_algo;
+    // Якщо ми в режимі Бінарного пошуку і зараз йде сортування - малюємо пре-алгоритм!
+    if (state.current_algo == 9 && state.is_sorting) {
+        active_algo = state.search_presort_algo;
+    }
+
+    // Вибір режиму візуалізації залежно від активного алгоритму
+    if (active_algo == 3 || active_algo == 4) {
         GeneratePartitionNumbers(state, t, t_jump);
-    }
-    // 7 = Heap Sort (Припустимо, що ти додаси його під цим індексом)
-    else if (state.current_algo == 7) {
+    } else if (active_algo == 7) {
         GenerateTreeNumbers(state, t, t_jump);
-    }
-    // Всі інші (Bubble, Selection, Insertion, Shell, Shaker)
-    else {
+    } else {
         GenerateLinearNumbers(state, t, t_jump);
     }
 }
 
+
+
+void ExplodeConfetti(AppState& state) {
+    state.particles.clear();
+    for (int i = 0; i < 150; i++) {
+        AppState::Confetti p;
+        p.x = ImGui::GetIO().DisplaySize.x / 2.0f; // Центр екрану
+        p.y = ImGui::GetIO().DisplaySize.y / 2.0f;
+        float angle = (rand() % 360) * 3.14159f / 180.0f;
+        float speed = (rand() % 1500 + 500) / 100.0f; 
+        p.vx = cos(angle) * speed;
+        p.vy = sin(angle) * speed - 7.0f; // Стрибок вгору (-Y)
+        p.size = (rand() % 6) + 4.0f;
+        // Випадковий яскравий неоновий колір
+        float r, g, b;
+        ImGui::ColorConvertHSVtoRGB((rand() % 100) / 100.0f, 0.8f, 1.0f, r, g, b);
+        p.color = ImGui::GetColorU32(ImVec4(r, g, b, 1.0f));
+        state.particles.push_back(p);
+    }
+}
+
+void UpdateSearchAnimation(AppState& state) {
+    if (!state.is_animating_search_success && !state.is_animating_search_fail) return;
+    
+    double current_time = ImGui::GetTime();
+    if (current_time - state.last_flash_time > 0.1) { // Кожні 100 мс
+        state.flash_state = !state.flash_state;
+        state.last_flash_time = current_time;
+        state.flash_count++;
+        
+        if (state.flash_count > 10) { // 5 повних циклів мигання
+            state.is_searching = false; // Зупиняємо машину станів
+            state.flash_state = true;   // Фіксуємо фінальний колір
+
+            if (!state.search_popup_shown) {
+                state.show_success_popup = true;
+                state.search_popup_shown = true;
+                if (state.is_animating_search_success) ExplodeConfetti(state); // Конфеті тільки при успіху!
+            }
+        }
+    }
+}
+
+
+
 void RenderCodePanel(AppState& state) {
-// ... (RenderCodePanel залишається без змін) ...
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImVec2 p = ImGui::GetCursorScreenPos();
     
@@ -794,6 +914,79 @@ void RenderCodePanel(AppState& state) {
             ImGui::TextColored(col_green, "// SIFT DOWN");
             ImGui::TextColored(col_normal, "        heapify(arr, n, largest);");
             ImGui::TextColored(col_normal, "    }");
+            ImGui::TextColored(col_normal, "}");
+            break;
+        case 8: // Linear Search
+            ImGui::Text(" Файл: linear_search.cpp");
+            ImGui::Separator(); ImGui::Spacing();
+            
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "linearSearch("); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "arr[], "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "n, "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "target) {");
+
+            ImGui::TextColored(col_keyword, "    for "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "("); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "i = 0; i < n; i++) {");
+            
+            // Активний рядок
+            ImGui::TextColored(col_active, "        if (arr[i] == target) { "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_green, "// ПЕРЕВІРКА ЕЛЕМЕНТА"); 
+            
+            ImGui::TextColored(col_keyword, "            return "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "i;");
+            ImGui::TextColored(col_normal, "        }");
+            ImGui::TextColored(col_normal, "    }");
+            
+            ImGui::TextColored(col_keyword, "    return "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "-1; "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_green, "// НЕ ЗНАЙДЕНО");
+            ImGui::TextColored(col_normal, "}");
+            break;
+
+        case 9: // Binary Search
+            ImGui::Text(" Файл: binary_search.cpp");
+            ImGui::Separator(); ImGui::Spacing();
+            
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "binarySearch("); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "arr[], "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "l, "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "r, "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_type, "int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "target) {");
+
+            ImGui::TextColored(col_keyword, "    while "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "(l <= r) {");
+
+            ImGui::TextColored(col_type, "        int "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "m = l + (r - l) / 2;");
+
+            // Активний рядок 1 (Успіх)
+            ImGui::TextColored(col_active, "        if (arr[m] == target) return m; "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_green, "// ЗНАЙДЕНО!");
+
+            // Активний рядок 2 (Зсув вправо)
+            ImGui::TextColored(col_active, "        if (arr[m] < target) l = m + 1; "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_green, "// ВІДКИДАЄМО ЛІВУ");
+
+            // Активний рядок 3 (Зсув вліво)
+            ImGui::TextColored(col_active, "        else r = m - 1; "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_green, "// ВІДКИДАЄМО ПРАВУ");
+
+            ImGui::TextColored(col_normal, "    }");
+            
+            ImGui::TextColored(col_keyword, "    return "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_normal, "-1; "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(col_green, "// НЕ ЗНАЙДЕНО");
             ImGui::TextColored(col_normal, "}");
             break;
     }

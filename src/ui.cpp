@@ -84,9 +84,10 @@ void RenderUI(AppState& state) {
     double delay = 0.1 / state.speed; 
     if(state.speed == 10.0) delay = 0;
 
+    UpdateSearchAnimation(state);
+
     // Робимо крок алгоритму ТІЛЬКИ якщо ми сортуємо І пройшло достатньо часу
-    if (state.is_sorting && (current_time - state.last_step_time) >= delay) {
-        
+    if ((state.is_sorting || state.is_searching) && (current_time - state.last_step_time) >= delay) {    
         // Викликаємо потрібний алгоритм залежно від вибору в меню
         if (state.current_algo == 0) {
             SelectionSort(state);
@@ -104,7 +105,30 @@ void RenderUI(AppState& state) {
             CocktailShakerSort(state);
         } else if (state.current_algo == 7) {
             HeapSort(state);
-        } 
+        } else if (state.current_algo == 8) {
+            LinearSearch(state);
+        } else if (state.current_algo == 9) {
+            if (state.search_presort_algo == 0) {
+                SelectionSort(state);
+            } else if (state.search_presort_algo == 1) {
+                InsertionSort(state);
+            } else if (state.search_presort_algo == 2) {
+                BubbleSort(state); // Бульбашка тепер третя в списку (індекс 2)
+            } else if (state.search_presort_algo == 3) {
+                MergeSort(state);
+            } else if (state.search_presort_algo == 4) {
+                QuickSort(state);
+            } else if (state.search_presort_algo == 5) {
+                ShellSort(state);
+            } else if (state.search_presort_algo == 6) {
+                CocktailShakerSort(state);
+            } else if (state.search_presort_algo == 7) {
+                HeapSort(state);
+            }
+            if(!state.is_sorting) {
+                BinarySearch(state);
+            }
+        }
         
         state.last_step_time = current_time; 
     }
@@ -121,6 +145,7 @@ void RenderUI(AppState& state) {
                 state.is_animating_finish = false;
                 state.is_sorted = true;          // Фіксуємо зелений колір!
                 state.show_success_popup = true; // Викликаємо вікно!
+                ExplodeConfetti(state);            // І вибух конфеті!
             }
         }
     }
@@ -142,26 +167,78 @@ void RenderUI(AppState& state) {
         ImGui::Separator();
         ImGui::Spacing();
         
-        if(ImGui::Button(state.is_sorted ? "Відсортувати заново" : "Старт", ImVec2(-1, 30))) {
-            // Якщо масив вже був зелений, скидаємо прогрес, щоб "перепрогнати" його
-            if (state.is_sorted) {
-                state.arr = state.initial_arr;
-                ClearStates(state);
-            }
-            state.is_sorting = true;
-            state.log_history.push_back("[System] Сортування запущено!");
+        // 1. Робимо розумну назву для кнопки
+        const char* btn_text = "Старт";
+
+        if (state.current_algo < 8) {
+            if (state.is_sorted) btn_text = "Відсортувати заново";
+        } else if (state.current_algo == 8) { // Лінійний пошук
+            if (state.search_result != -1 || state.is_animating_search_fail) btn_text = "Шукати заново";
+            else btn_text = "Почати пошук";
+        } else if (state.current_algo == 9) { // Бінарний пошук
+            if (!state.is_sorted) btn_text = "Пресортувати масив";
+            else if (state.search_result != -1 || state.is_animating_search_fail) btn_text = "Шукати заново";
+            else btn_text = "Почати пошук";
         }
+
+        // 2. Сама кнопка
+        if(ImGui::Button(btn_text, ImVec2(-1, 30))) {
+            if (state.current_algo == 9 && !state.is_sorted) {
+                // КРОК 1 ДЛЯ БІНАРНОГО: ПРЕСОРТУВАННЯ
+                state.is_sorting = true;
+                state.is_searching = false;
+                state.is_presorting = true; // Вмикаємо пресортування для візуалізації
+                state.log_history.push_back("[System] Запуск пресортування перед пошуком...");
+            } else if (state.current_algo >= 8) {
+                state.last_flash_time = ImGui::GetTime();
+                state.search_popup_shown = false; // <--- ДОДАЙ ЦЕЙ РЯДОК ОСЬ ТУТ
+                // КРОК 2: САМ ПОШУК (Масив НЕ скидаємо, щоб він лишився відсортованим!)
+                state.is_searching = true;
+                state.is_sorting = false;
+                state.is_presorting = false;
+
+                // Очищаємо тільки змінні пошуку
+                state.search_index = 0;
+                state.search_l = 0;
+                state.search_r = state.arr.size() - 1;
+                state.search_result = -1;
+                state.is_animating_search_success = false;
+                state.is_animating_search_fail = false;
+                state.flash_count = 0;
+                state.last_flash_time = ImGui::GetTime();
+                
+                state.log_history.push_back("[Search] Починаємо пошук числа: " + std::to_string(state.search_target));
+            } else {
+                // ЗВИЧАЙНЕ СОРТУВАННЯ (0-7)
+                state.last_flash_time = ImGui::GetTime();
+                state.search_popup_shown = false; 
+                if (state.is_sorted) {
+                    state.arr = state.initial_arr;
+                    ClearStates(state);
+                }
+                state.is_sorting = true;
+                state.is_searching = false;
+                state.log_history.push_back("[System] Сортування запущено!");
+            }
+        }
+
+        
         if(ImGui::Button("Пауза", ImVec2(-1, 30))) {
             state.is_sorting = false;
+            state.is_searching = false;
             state.log_history.push_back("[System] Пауза...");
         }
+        
         if(ImGui::Button("Згенерувати масив", ImVec2(-1, 30))) {
             GenerateArray(state);
+            // Скидаємо пошук при генерації нового масиву
+            state.search_result = -1;
+            state.is_animating_search_success = false;
+            state.is_animating_search_fail = false;
         }
         
         ImGui::Spacing(); ImGui::Spacing();
         
-        // Змінні для зберігання поточного вибору (static, щоб не скидались кожен кадр)
         const char* algos[] = { 
             "Selection Sort (Лаба 1)", 
             "Insertion Sort (Лаба 2)", 
@@ -170,31 +247,65 @@ void RenderUI(AppState& state) {
             "Quick Sort (Лаба 5)", 
             "Shell Sort (Лаба 6)", 
             "Cocktail Shaker (Лаба 7)",
-            "Heap Sort (Лаба 8)"
+            "Heap Sort (Лаба 8)",
+            "Linear Search (Лаба 9)",
+            "Binary Search (Лаба 10)"
         };
+
         ImGui::Text("Алгоритм:");
         if(ImGui::Combo("##algo", &state.current_algo, algos, IM_ARRAYSIZE(algos))) { 
             state.arr = state.initial_arr;
             state.is_sorting = false;
-            state.is_animating_finish = false; // Зупиняємо зелену хвилю, якщо вона була
+            state.is_searching = false;
+            state.is_animating_finish = false;
             ClearStates(state);
+            
+            // Скидаємо візуал пошуку при зміні алгоритму
+            state.search_result = -1;
+            state.is_animating_search_success = false;
+            state.is_animating_search_fail = false;
+            
             state.log_history.push_back("[System] Алгоритм змінено. Масив скинуто.");
         }
         
         ImGui::Spacing();
-        
-        ImGui::Text("Напрямок сортування:");
-        if (ImGui::RadioButton("Зростання", !state.sort_descending)) {
-            state.sort_descending = false;
-            // Скидаємо масив, якщо вже відсортовано
-            if (!state.is_sorting && state.is_sorted) { state.arr = state.initial_arr; ClearStates(state); }
-            state.log_history.push_back("[Action] Напрямок змінено: Зростання");
-        }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Спадання", state.sort_descending)) {
-            state.sort_descending = true;
-            if (!state.is_sorting && state.is_sorted) { state.arr = state.initial_arr; ClearStates(state); }
-            state.log_history.push_back("[Action] Напрямок змінено: Спадання");
+
+        if(state.current_algo >= 8) { // Якщо вибрано пошук
+            ImGui::Text("Число для пошуку:");
+            ImGui::InputInt("##search_target", &state.search_target, 1, 10);
+            if (state.current_algo == 9) {
+                ImGui::Spacing();
+                ImGui::Text("Преалгоритм пошуку:");
+                const char* presort_algos[8];
+                std::copy(algos, algos + 8, presort_algos);
+                if(ImGui::Combo("##preset_algo", &state.search_presort_algo, presort_algos, IM_ARRAYSIZE(presort_algos))) { 
+                    state.arr = state.initial_arr;
+                    state.is_sorting = false;
+                    state.is_searching = false;
+                    state.is_animating_finish = false;
+                    ClearStates(state);
+                    
+                    // Скидаємо візуал пошуку при зміні алгоритму
+                    state.search_result = -1;
+                    state.is_animating_search_success = false;
+                    state.is_animating_search_fail = false;
+                    
+                    state.log_history.push_back("[System] Алгоритм змінено. Масив скинуто.");
+                }
+            }
+        } else { // Якщо вибрано сортування
+            ImGui::Text("Напрямок сортування:");
+            if (ImGui::RadioButton("Зростання", !state.sort_descending)) {
+                state.sort_descending = false;
+                if (!state.is_sorting && state.is_sorted) { state.arr = state.initial_arr; ClearStates(state); }
+                state.log_history.push_back("[Action] Напрямок змінено: Зростання");
+            }
+            ImGui::SameLine();
+            if (ImGui::RadioButton("Спадання", state.sort_descending)) {
+                state.sort_descending = true;
+                if (!state.is_sorting && state.is_sorted) { state.arr = state.initial_arr; ClearStates(state); }
+                state.log_history.push_back("[Action] Напрямок змінено: Спадання");
+            } 
         }
         ImGui::Spacing();
         ImGui::Separator();
@@ -257,23 +368,57 @@ void RenderUI(AppState& state) {
         ImGui::EndChild();
         
         // --- СПЛИВАЮЧЕ ВІКНО УСПІХУ ---
-        if (state.show_success_popup) {
-            ImGui::OpenPopup("Успіх!"); // Кажемо ImGui відкрити вікно
-            state.show_success_popup = false; // Одразу вимикаємо тригер, щоб не відкривало нескінченно
+        // МАЛЮЄМО КОНФЕТІ 
+        if (!state.particles.empty()) {
+            ImDrawList* draw_list = ImGui::GetForegroundDrawList(); // Малюємо ПОВЕРХ усього
+            for (auto& p : state.particles) {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.3f; // Гравітація тягне вниз
+                draw_list->AddRectFilled(ImVec2(p.x, p.y), ImVec2(p.x + p.size, p.y + p.size), p.color);
+            }
         }
 
-        // Налаштування самого спливаючого вікна (модальне - блокує все інше, поки не закриєш)
-        ImGuiWindowFlags popup_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings;
-        if (ImGui::BeginPopupModal("Успіх!", NULL, popup_flags)) {
-            ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "🎉 ВІТАЄМО!");
-            ImGui::Text("Алгоритм %s успішно завершив роботу!", algos[state.current_algo]);
-            ImGui::Separator();
-            ImGui::Text("Розмір масиву: %d елементів", (int)state.arr.size());
-            ImGui::Spacing();
+        // РОЗУМНИЙ ПОПАП
+        if (state.show_success_popup) {
+            ImGui::OpenPopup("Результат");
+            state.show_success_popup = false; 
+        }
+
+        ImGuiWindowFlags popup_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse;
+        if (ImGui::BeginPopupModal("Результат", NULL, popup_flags)) {
             
-            // Кнопка закриття по центру
+            // --- Якщо це СОРТУВАННЯ ---
+            if (state.current_algo < 8) {
+                ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "[ СОРТУВАННЯ ЗАВЕРШЕНО ]");
+                ImGui::Separator(); ImGui::Spacing();
+                ImGui::Text("Алгоритм: %s", algos[state.current_algo]);
+                ImGui::Text("Розмір масиву: %d елементів", (int)state.arr.size());
+                ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Статус: Масив ідеально відсортовано!");
+            } 
+            // --- Якщо це ПОШУК ---
+            else {
+                if (state.search_result != -1) {
+                    ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "[ ПОШУК УСПІШНИЙ ]");
+                    ImGui::Separator(); ImGui::Spacing();
+                    ImGui::Text("Алгоритм: %s", algos[state.current_algo]);
+                    ImGui::Text("Шукали число: %d", state.search_target);
+                    ImGui::Text("Знайдено на індексі: %d", state.search_result);
+                } else {
+                    ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "[ ПОШУК НЕВДАЛИЙ ]");
+                    ImGui::Separator(); ImGui::Spacing();
+                    ImGui::Text("Алгоритм: %s", algos[state.current_algo]);
+                    ImGui::Text("Шукали число: %d", state.search_target);
+                    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Статус: Елемент відсутній у масиві.");
+                }
+            }
+            
+            ImGui::Spacing(); ImGui::Spacing();
             ImGui::SetCursorPosX((ImGui::GetWindowSize().x - 120) * 0.5f);
+            
+            // Кнопка закриття
             if (ImGui::Button("Супер!", ImVec2(120, 0))) {
+                state.particles.clear(); // Вимикаємо конфеті при закритті вікна
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();

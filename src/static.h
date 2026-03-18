@@ -1,18 +1,19 @@
 #pragma once
 #include <vector>
 #include <string>
+#include "imgui.h"
 
 struct AppState {
     // ==========================================
     // Змінні для базового налаштування та базової побудови
     // ==========================================
-    int current_algo = 0;
-    int current_vis = 0;
+    int current_algo = 9;
+    int current_vis = 3;
     int current_sys = 0;
     
-    float speed = 10.0f;
+    float speed = 0.4f;
     double last_step_time = 0.0;
-    int array_size = 50;
+    int array_size = 10;
     int min_value = -100;
     int max_value = 100;
     
@@ -100,4 +101,41 @@ struct AppState {
     // --- Налаштування візуалу ---
     bool enable_cyber_bg = false;
     bool enable_elements = false;
+
+    // ==========================================
+    // --- ЗМІННІ ДЛЯ АЛГОРИТМІВ ПОШУКУ ---
+    // ==========================================
+    bool is_searching = false;
+    bool is_found = false;
+    int search_target = 0;      
+    int search_result = -1;     
+    
+    // Змінні для Лінійного пошуку
+    int search_index = 0;       
+    
+    // Змінні для Бінарного пошуку
+    bool is_presorting = false;
+    int search_l = 0;           
+    int search_r = 0;           
+    int search_m = 0;           
+    int search_presort_algo = 4; 
+
+    // ==========================================
+    // --- АНІМАЦІЯ МИГАННЯ (FLASHING) ---
+    // ==========================================
+    bool is_animating_search_success = false; 
+    bool is_animating_search_fail = false;    
+    int flash_count = 0;                      
+    double last_flash_time = 0;               
+    bool flash_state = false;                 
+
+    // ==========================================
+    // --- СИСТЕМА ЧАСТИНОК (КОНФЕТІ) ---
+    // ==========================================
+    struct Confetti {
+        float x, y, vx, vy, size;
+        ImU32 color;
+    };
+    std::vector<Confetti> particles;
+    bool search_popup_shown = false; // Щоб вікно пошуку відкрилося лише один раз
 };

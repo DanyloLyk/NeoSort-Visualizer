@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <sstream>
 #include "algorithms.h"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 using namespace std;
 
@@ -571,12 +574,56 @@ void HeapSort(AppState& state) {
     }
 }
 
+void LinearSearch(AppState& state) {
+    if (!state.is_searching || state.is_animating_search_success || state.is_animating_search_fail) return;
+
+    if (state.search_index < state.arr.size()) {
+        state.highlight_1 = state.search_index; // Ставимо фокус
+        
+        if (state.arr[state.search_index] == state.search_target) {
+            state.search_result = state.search_index;
+            state.is_animating_search_success = true;
+            state.log_history.push_back("[Search] Успіх! Знайдено на індексі " + std::to_string(state.search_index));
+        } else {
+            state.search_index++;
+        }
+    } else {
+        state.is_animating_search_fail = true;
+        state.log_history.push_back("[Search] Провал. Число не знайдено в масиві.");
+    }
+}
+
+void BinarySearch(AppState& state) {
+    if (!state.is_searching || state.is_animating_search_success || state.is_animating_search_fail) return;
+
+    if (state.search_l <= state.search_r) {
+        state.search_m = state.search_l + (state.search_r - state.search_l) / 2;
+        state.highlight_1 = state.search_m; // Перевіряємо середину
+
+        if (state.arr[state.search_m] == state.search_target) {
+            state.search_result = state.search_m;
+            state.is_animating_search_success = true;
+            state.log_history.push_back("[Search] Успіх! Знайдено на індексі " + std::to_string(state.search_m));
+        } else if (state.arr[state.search_m] < state.search_target) {
+            state.search_l = state.search_m + 1;
+        } else {
+            state.search_r = state.search_m - 1;
+        }
+    } else {
+        state.is_animating_search_fail = true;
+        state.log_history.push_back("[Search] Провал. Число не знайдено в масиві.");
+    }
+}
+
 void EndSort(AppState& state) {
     state.is_sorting = false;
+    state.is_sorted = true;
     state.highlight_1 = -1;
     state.highlight_2 = -1;
     
-    state.is_animating_finish = true;
+    if(!state.is_presorting) {
+        state.is_animating_finish = true;
+    }
     state.finish_anim_index = 0;
     
     std::string final_arr_str = "";
@@ -632,4 +679,7 @@ void ClearStates(AppState& state) {
     state.heap_i = 0;
     state.heap_current_root = 0;
     state.heap_current_n = 0;
+
+    state.search_l = 0;
+    state.search_r = state.arr.size() - 1;  
 }
