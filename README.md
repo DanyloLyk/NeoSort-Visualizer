@@ -139,6 +139,8 @@ make
 
 ### 🪟 Windows (MinGW)
 
+#### **-------------------1 спосіб-------------------**
+
 Для збірки на Windows рекомендується використовувати середовище MSYS2, яке надає доступ до інструментів GNU, включаючи MinGW-w64, `cmake` та `make`.
 
 **1. Встановлення MSYS2 та залежностей:**
@@ -178,12 +180,16 @@ make
 ./Algorithms.exe
 ```
 
-**2. Запуск:**
-
-```cmd
-visualizer.exe
-```
-
+#### **-------------------2 спосіб-------------------**
+1.  Клонуйте репозиторій:
+    ```bash
+    git clone https://github.com/DanyloLyk/NeoSort-Visualizer.git
+    cd NeoSort-Visualizer
+    ```
+2.  Запустіть програму
+    ```bash
+    ./NeoSort.exe
+    ```
 ---
 
 <div align="center">
