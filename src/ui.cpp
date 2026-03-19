@@ -332,7 +332,7 @@ void RenderUI(AppState& state) {
         ImGui::Text("Розмір масиву:");
         ImGui::InputInt("##arr_size", &state.array_size, 1, 10);
         // Для чисел макс 20, для решти макс 200
-        int max_size = (state.current_vis == 3) ? 20 : 200; 
+        int max_size = (state.current_vis == 3) ? 20 : 1000; 
         
         if (state.array_size < 5) state.array_size = 5;
         if (state.array_size > max_size) {
@@ -359,6 +359,7 @@ void RenderUI(AppState& state) {
 
         ImGui::Text("Свій масив (через пробіл):");
         // Поле для вводу тексту
+        ImGui::Text("Buffer Capacity: %d", (int)IM_ARRAYSIZE(state.custom_array_input));
         ImGui::InputText("##custom_arr", state.custom_array_input, IM_ARRAYSIZE(state.custom_array_input));
         
         if (ImGui::Button("Застосувати свій масив", ImVec2(-1, 30))) {

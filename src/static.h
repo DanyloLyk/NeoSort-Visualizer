@@ -7,13 +7,13 @@ struct AppState {
     // ==========================================
     // Змінні для базового налаштування та базової побудови
     // ==========================================
-    int current_algo = 9;
-    int current_vis = 3;
+    int current_algo = 0;
+    int current_vis = 1;
     int current_sys = 0;
     
-    float speed = 0.4f;
+    float speed = 1.0f;
     double last_step_time = 0.0;
-    int array_size = 10;
+    int array_size = 100;
     int min_value = -100;
     int max_value = 100;
     
@@ -91,7 +91,7 @@ struct AppState {
     int highlight_2 = -1;
 
     // --- Для ручного вводу ---
-    char custom_array_input[512] = "";
+    char custom_array_input[1024] = "";
 
     // --- Для зеленої хвилі (фініш) ---
     bool is_animating_finish = false;
